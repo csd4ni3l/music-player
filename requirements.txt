@@ -4,3 +4,4 @@ pypresence
 mutagen
 yt-dlp
 thefuzz
+pydub
