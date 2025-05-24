@@ -5,7 +5,6 @@ from utils.preload import *
 from utils.constants import button_style, slider_style, audio_extensions, discord_presence_id
 from utils.utils import FakePyPresence, UIFocusTextureButton, extract_metadata, truncate_end
 
-from arcade.gui.property import bind
 from thefuzz import process, fuzz
 from pydub import AudioSegment
 

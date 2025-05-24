@@ -110,7 +110,7 @@ class Downloader(arcade.gui.UIView):
                 try:
                     audio = AudioSegment.from_file("downloaded_music.mp3")
 
-                    if audio.dBFS < self.settings_dict.get("normalized_volume", -8):
+                    if int(audio.dBFS) != self.settings_dict.get("normalized_volume", -8):
                         change = self.settings_dict.get("normalized_volume", -8) - audio.dBFS
                         audio = audio.apply_gain(change)
 
