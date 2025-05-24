@@ -1,8 +1,13 @@
+import os
+bin_path = os.path.join(os.getcwd(), "bin")
+current_path = os.environ.get("PATH", "")
+os.environ["PATH"] = f"{bin_path}{os.pathsep}{current_path}"
+
 import pyglet
 
 pyglet.options.debug_gl = False
 
-import logging, datetime, os, json, sys, arcade
+import logging, datetime, json, sys, arcade
 
 from utils.utils import get_closest_resolution, print_debug_info, on_exception, ErrorView
 from utils.constants import log_dir, menu_background_color
@@ -84,14 +89,15 @@ arcade.set_background_color(menu_background_color)
 
 print_debug_info()
 
-if pyglet.media.codecs.have_ffmpeg():
-    menu = Main()
-else:
-    menu = ErrorView("FFmpeg has not been found but is required for this application.", "FFmpeg lib not found.")
+# if pyglet.media.codecs.have_ffmpeg():
+#     menu = Main()
+# else:
+from menus.ffmpeg_missing import FFmpegMissing
+menu = FFmpegMissing()
 
 window.show_view(menu)
 
-logging.debug('Game started.')
+logging.debug('App started.')
 
 arcade.run()
 
