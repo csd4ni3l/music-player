@@ -1,0 +1,17 @@
+Some icons used in this project are from Font Awesome Free by Fonticons, Inc.
+Licensed under the Creative Commons Attribution 4.0 International License (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/
+Icons were modified (repainted to white and exported to PNG).
+
+Huge Thanks to Python for being the programming language used in this application.
+https://www.python.org/
+
+Huge thanks to Arcade and Pyglet for being the graphical engines used in this application.
+https://arcade.academy/
+https://pyglet.readthedocs.io/en/latest/
+
+Thanks to the following other libraries used in this application:
+pypresence - https://github.com/qwertyquerty/pypresence - Used for Discord Rich Presence
+pydub - https://github.com/jiaaro/pydub - Used for audio dBFS and normalization
+yt-dlp - https://github.com/yt-dlp/yt-dlp - Used for downloading music
+thefuzz and dependencies - https://github.com/seatgeek/thefuzz - Used for fuzzy search
+mutagen - https://github.com/quodlibet/mutagen - Used for audio metadata extraction and modification

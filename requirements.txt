@@ -1,0 +1,6 @@
+Pillow
+arcade==3.2.0
+pypresence
+mutagen
+yt-dlp
+thefuzz

@@ -1,0 +1,14 @@
+[project]
+name = "MusicPlayer"
+version = "0.1.0"
+description = "A Music Player in Python, made with arcade and pyglet"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "arcade==3.2.0",
+    "mutagen>=1.47.0",
+    "pydub>=0.25.1",
+    "pypresence>=4.3.0",
+    "thefuzz>=0.22.1",
+    "yt-dlp>=2025.4.30",
+]
