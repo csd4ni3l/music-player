@@ -24,7 +24,7 @@ class Downloader(arcade.gui.UIView):
         self.pypresence_client = pypresence_client
         self.pypresence_client.update(state="Downloading music", start=self.pypresence_client.start_time)
 
-        with open("settings.json", "r") as file:
+        with open("settings.json", "r", encoding="utf-8") as file:
             self.settings_dict = json.load(file)
 
         self.tab_options = self.settings_dict.get("tab_options", ["~/Music", "~/Downloads"])
@@ -88,7 +88,7 @@ class Downloader(arcade.gui.UIView):
             return None
 
         try:
-            with open("downloaded_music.mp3.info.json", "r") as file:
+            with open("downloaded_music.mp3.info.json", "r", encoding="utf-8") as file:
                 info = json.load(file)
             return info
         except (json.JSONDecodeError, OSError):

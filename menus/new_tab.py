@@ -18,7 +18,7 @@ class NewTab(arcade.gui.UIView):
         self.loaded_sounds = loaded_sounds
         self.shuffle = shuffle
 
-        with open("settings.json", "r") as file:
+        with open("settings.json", "r", encoding="utf-8") as file:
             self.settings_dict = json.load(file)
 
         self.tab_options = self.settings_dict.get("tab_options", ["~/Music", "~/Downloads"])
@@ -69,7 +69,7 @@ class NewTab(arcade.gui.UIView):
             self.playlists[self.new_tab_input.text] = []
             self.settings_dict["playlists"] = self.playlists
 
-        with open("settings.json", "w") as file:
+        with open("settings.json", "w", encoding="utf-8") as file:
             file.write(json.dumps(self.settings_dict))
 
     def main_exit(self):

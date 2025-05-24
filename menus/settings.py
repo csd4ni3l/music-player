@@ -20,7 +20,7 @@ class Settings(arcade.gui.UIView):
         self.loaded_sounds = loaded_sounds
         self.shuffle = shuffle
 
-        with open("settings.json", "r") as file:
+        with open("settings.json", "r", encoding="utf-8") as file:
             self.settings_dict = json.load(file)
 
         self.pypresence_client = pypresence_client
@@ -213,7 +213,7 @@ class Settings(arcade.gui.UIView):
 
         self.display_category(self.current_category)
 
-        with open("settings.json", "w") as file:
+        with open("settings.json", "w", encoding="utf-8") as file:
             file.write(json.dumps(self.settings_dict, indent=4))
 
     def update(self, setting=None, button_state=None, setting_type="bool"):
@@ -261,7 +261,7 @@ class Settings(arcade.gui.UIView):
         self.key_layout.clear()
         self.value_layout.clear()
 
-        with open('CREDITS', 'r') as file:
+        with open('CREDITS', 'r', encoding="utf-8") as file:
             text = file.read()
 
         if self.window.width == 3840:

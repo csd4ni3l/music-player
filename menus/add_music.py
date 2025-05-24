@@ -18,7 +18,7 @@ class AddMusic(arcade.gui.UIView):
         self.loaded_sounds = loaded_sounds
         self.shuffle = shuffle
 
-        with open("settings.json", "r") as file:
+        with open("settings.json", "r", encoding="utf-8") as file:
             self.settings_dict = json.load(file)
 
         self.playlists = self.settings_dict.get("playlists", {})
@@ -60,7 +60,7 @@ class AddMusic(arcade.gui.UIView):
         self.playlists[playlist].append(os.path.expanduser(music_path))
         self.settings_dict["playlists"] = self.playlists
 
-        with open("settings.json", "w") as file:
+        with open("settings.json", "w", encoding="utf-8") as file:
             file.write(json.dumps(self.settings_dict))
 
     def main_exit(self):

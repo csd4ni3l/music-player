@@ -18,7 +18,7 @@ class Main(arcade.gui.UIView):
         super().__init__()
         self.pypresence_client = pypresence_client
 
-        with open("settings.json", "r") as file:
+        with open("settings.json", "r", encoding="utf-8") as file:
             self.settings_dict = json.load(file)
 
         if self.settings_dict.get('discord_rpc', True):

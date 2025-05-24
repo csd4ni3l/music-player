@@ -67,7 +67,7 @@ else:
         "discord_rpc": True
     }
 
-    with open("settings.json", "w") as file:
+    with open("settings.json", "w", encoding="utf-8") as file:
         file.write(json.dumps(settings))
 
 window = ControllerWindow(width=resolution[0], height=resolution[1], title='Music Player', samples=antialiasing, antialiasing=antialiasing > 0, fullscreen=fullscreen, vsync=vsync, resizable=False, style=style)
