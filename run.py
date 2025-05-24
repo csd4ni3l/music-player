@@ -89,11 +89,11 @@ arcade.set_background_color(menu_background_color)
 
 print_debug_info()
 
-# if pyglet.media.codecs.have_ffmpeg():
-#     menu = Main()
-# else:
-from menus.ffmpeg_missing import FFmpegMissing
-menu = FFmpegMissing()
+if pyglet.media.codecs.have_ffmpeg():
+    menu = Main()
+else:
+    from menus.ffmpeg_missing import FFmpegMissing
+    menu = FFmpegMissing()
 
 window.show_view(menu)
 
