@@ -47,7 +47,7 @@ class FFmpegMissing(arcade.gui.UIView):
         elif system == "Windows":
             try:
                 subprocess.run([
-                    "winget", "install", "--id=Gyan.FFmpeg", "--scope=user",
+                    "winget", "install", "BtbN.FFmpeg.GPL.Shared.7.1",
                     "--accept-source-agreements", "--accept-package-agreements"
                 ], check=True)
                 logging.debug("FFmpeg installed via winget.")
