@@ -1,12 +1,11 @@
-from yt_dlp import YoutubeDL
 from mutagen.easyid3 import EasyID3
 from pydub import AudioSegment
 
-import arcade, arcade.gui, os, json, yt_dlp, threading
+import arcade, arcade.gui, os, json, threading, subprocess
 
 from arcade.gui.experimental.focus import UIFocusGroup
 
-from utils.utils import UIFocusTextureButton, BufferLogger
+from utils.utils import UIFocusTextureButton, ensure_yt_dlp
 from utils.constants import button_style, dropdown_style, yt_dlp_parameters
 from utils.preload import button_texture, button_hovered_texture
 
@@ -29,9 +28,7 @@ class Downloader(arcade.gui.UIView):
             self.settings_dict = json.load(file)
 
         self.tab_options = self.settings_dict.get("tab_options", ["~/Music", "~/Downloads"])
-
-        self.yt_dl = YoutubeDL(params=yt_dlp_parameters)
-        self.yt_dl.params["logger"] = self.yt_dl_logger = BufferLogger()
+        self.yt_dl_buffer = ""
 
     def on_show_view(self):
         super().on_show_view()
@@ -58,14 +55,45 @@ class Downloader(arcade.gui.UIView):
         self.anchor.detect_focusable_widgets()
 
     def on_update(self, delta_time: float) -> bool | None:
-        self.status_label.text = self.yt_dl_logger.buffer
+        self.status_label.text = self.yt_dl_buffer
 
-        if "WARNING" in self.yt_dl_logger.buffer:
+        if "WARNING" in self.yt_dl_buffer:
             self.status_label.update_font(font_color=arcade.color.YELLOW)
-        elif "ERROR" in self.yt_dl_logger.buffer:
+        elif "ERROR" in self.yt_dl_buffer:
             self.status_label.update_font(font_color=arcade.color.RED)
         else:
             self.status_label.update_font(font_color=arcade.color.LIGHT_GREEN)
+
+    def run_yt_dlp(self, url):
+        yt_dlp_path = ensure_yt_dlp()
+
+        command = [
+            yt_dlp_path, f"{url}",
+            "--write-info-json",
+            "-x", "--audio-format", "mp3",
+            "-o", "downloaded_music.mp3",
+            "--no-playlist",
+            "--embed-thumbnail",
+            "--embed-metadata"
+        ]
+
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+        for line in process.stdout:
+             self.yt_dl_buffer = line
+
+        process.wait()
+
+        if process.returncode != 0:
+            return None
+
+        try:
+            with open("downloaded_music.mp3.info.json", "r") as file:
+                info = json.load(file)
+            return info
+        except (json.JSONDecodeError, OSError):
+            self.yt_dl_buffer += "\nERROR: Failed to parse yt-dlp JSON output.\n"
+            return None
 
     def download(self):
         if not self.tab_selector.value:
@@ -78,17 +106,14 @@ class Downloader(arcade.gui.UIView):
 
         path = os.path.expanduser(self.tab_selector.value)
 
-        try:
-            info = self.yt_dl.extract_info(url, download=True)
-        except yt_dlp.DownloadError as e:
-            message = "".join(e.msg.strip().split("] ")[1:]) if e.msg else "Unknown yt-dlp error."
-            self.yt_dl_logger.buffer = f"ERROR: {message}"
-            return
+        info = self.run_yt_dlp(url)
+
+        os.remove("downloaded_music.mp3.info.json")
+        os.remove("downloaded_music.info.json")
 
         if info:
-            entry = info['entries'][0] if 'entries' in info else info
-            title = entry.get('title', 'Unknown')
-            uploader = entry.get('uploader', 'Unknown')
+            title = info.get('title', 'Unknown')
+            uploader = info.get('uploader', 'Unknown')
 
             if " - " in title:
                 artist, track_title = title.split(" - ", 1)
@@ -103,7 +128,7 @@ class Downloader(arcade.gui.UIView):
                 audio["title"] = track_title
                 audio.save()
             except Exception as meta_err:
-                self.yt_dl_logger.buffer = f"ERROR: Tried to override metadata based on title, but failed: {meta_err}"
+                self.yt_dl_buffer = f"ERROR: Tried to override metadata based on title, but failed: {meta_err}"
                 return
 
             if self.settings_dict.get("normalize_audio", True):
@@ -117,20 +142,20 @@ class Downloader(arcade.gui.UIView):
                         audio.export("downloaded_music.mp3", format="mp3")
 
                 except Exception as e:
-                    self.yt_dl_logger.buffer = f"ERROR: Could not normalize volume due to an error: {e}"
+                    self.yt_dl_buffer = f"ERROR: Could not normalize volume due to an error: {e}"
                     return
             try:
                 output_filename = os.path.join(path, f"{title}.mp3")
                 os.replace("downloaded_music.mp3", output_filename)
 
             except Exception as e:
-                self.yt_dl_logger.buffer = f"ERROR: Could not move file due to an error: {e}"
+                self.yt_dl_buffer = f"ERROR: Could not move file due to an error: {e}"
                 return
         else:
-            self.yt_dl_logger.buffer = f"ERROR: Info unavailable. This maybe due to being unable to download it due to DRM or other issues"
+            self.yt_dl_buffer = f"ERROR: Info unavailable. This maybe due to being unable to download it due to DRM or other issues"
             return
 
-        self.yt_dl_logger.buffer = f"Successfully downloaded {title} to {path}"
+        self.yt_dl_buffer = f"Successfully downloaded {title} to {path}"
 
     def main_exit(self):
         from menus.main import Main

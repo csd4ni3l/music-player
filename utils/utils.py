@@ -1,5 +1,4 @@
-import logging, arcade, arcade.gui, sys, traceback, os, re
-
+import logging, arcade, arcade.gui, sys, traceback, os, re, platform, urllib.request, stat
 from mutagen.easyid3 import EasyID3
 
 from utils.constants import menu_background_color
@@ -98,24 +97,41 @@ class UIFocusTextureButton(arcade.gui.UITextureButton):
         else:
             self.resize(width=self.width / 1.1, height=self.height / 1.1)
 
-class BufferLogger:
-    def __init__(self):
-        self.buffer = "No errors."
+def get_yt_dlp_binary_path():
+    binary = "yt-dlp"
+    system = platform.system()
 
-    def debug(self, msg):
-        self._log(msg)
+    if system == "Windows":
+        binary += ".exe"
+    elif system == "Darwin":
+        binary += "_macos"
+    elif system == "Linux":
+        binary += "_linux"
 
-    def info(self, msg):
-        self._log(msg)
+    return os.path.join("bin", binary)
 
-    def warning(self, msg):
-        self._log(f"WARNING: {msg}")
+def ensure_yt_dlp():
+    path = get_yt_dlp_binary_path()
 
-    def error(self, msg):
-        self._log(f"ERROR: {msg}")
+    if not os.path.exists("bin"):
+        os.makedirs("bin")
 
-    def _log(self, msg):
-        self.buffer = msg
+    if not os.path.exists(path):
+        system = platform.system()
+
+        if system == "Windows":
+            url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
+        elif system == "Darwin":
+            url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos"
+        elif system == "Linux":
+            url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux"
+        else:
+            raise RuntimeError("Unsupported OS")
+
+        urllib.request.urlretrieve(url, path)
+        os.chmod(path, 0o755)
+
+    return path
 
 def truncate_end(text: str, max_length: int) -> str:
     if len(text) <= max_length:

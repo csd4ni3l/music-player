@@ -81,7 +81,6 @@ dependencies = [
     { name = "pydub" },
     { name = "pypresence" },
     { name = "thefuzz" },
-    { name = "yt-dlp" },
 ]
 
 [package.metadata]
@@ -91,7 +90,6 @@ requires-dist = [
     { name = "pydub", specifier = ">=0.25.1" },
     { name = "pypresence", specifier = ">=4.3.0" },
     { name = "thefuzz", specifier = ">=0.22.1" },
-    { name = "yt-dlp", specifier = ">=2025.4.30" },
 ]
 
 [[package]]
@@ -314,13 +312,4 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f6/37/23083fcd6e35492953e8d2aaaa68b860eb422b34627b13f2ce3eb6106061/typing_extensions-4.13.2.tar.gz", hash = "sha256:e6c81219bd689f51865d9e372991c540bda33a0379d5573cddb9a3a23f7caaef", size = 106967, upload_time = "2025-04-10T14:19:05.416Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8b/54/b1ae86c0973cc6f0210b53d508ca3641fb6d0c56823f288d108bc7ab3cc8/typing_extensions-4.13.2-py3-none-any.whl", hash = "sha256:a439e7c04b49fec3e5d3e2beaa21755cadbbdc391694e28ccdd36ca4a1408f8c", size = 45806, upload_time = "2025-04-10T14:19:03.967Z" },
-]
-
-[[package]]
-name = "yt-dlp"
-version = "2025.4.30"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/75/ca/1d1a33dec2107463f59bc4b448fcf43718d86a36b6150e8a0cfd1a96a893/yt_dlp-2025.4.30.tar.gz", hash = "sha256:d01367d0c3ae94e35cb1e2eccb7a7c70e181c4ca448f4ee2374f26489d263603", size = 2981094, upload_time = "2025-04-30T23:31:17.679Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ea/18/bbccb18661a853c3db947152439229b9bf686fe0ab2cc7848ab3a24f2ad2/yt_dlp-2025.4.30-py3-none-any.whl", hash = "sha256:53cd82bf13f12a1fe9c564b0004e001156b153c9247fa3cef14d1400ab359150", size = 3239476, upload_time = "2025-04-30T23:31:14.997Z" },
 ]
