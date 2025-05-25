@@ -1,6 +1,6 @@
 import arcade, arcade.gui, os, json
 
-from utils.constants import button_style, dropdown_style
+from utils.constants import button_style
 from utils.preload import button_texture, button_hovered_texture
 from utils.utils import UIFocusTextureButton
 
@@ -32,10 +32,10 @@ class AddMusic(arcade.gui.UIView):
         self.anchor = self.add_widget(UIFocusGroup(size_hint=(1, 1)))
         self.box = self.anchor.add(arcade.gui.UIBoxLayout(space_between=10), anchor_x="center", anchor_y="center")
 
-        self.playlist_label = self.box.add(arcade.gui.UILabel(text="Playlist", font_name="Protest Strike", font_size=32))
-        self.playlist_option = self.box.add(arcade.gui.UIDropdown(default=list(self.playlists.keys())[0], options=list(self.playlists.keys()), width=self.window.width / 2, height=self.window.height / 15, primary_style=dropdown_style, dropdown_style=dropdown_style, active_style=dropdown_style))
-        self.music_label = self.box.add(arcade.gui.UILabel(text="Music File Path", font_name="Protest Strike", font_size=32))
-        self.add_music_input = self.box.add(arcade.gui.UIInputText(font_name="Protest Strike", font_size=32, width=self.window.width / 2, height=self.window.height / 10))
+        self.playlist_label = self.box.add(arcade.gui.UILabel(text="Playlist", font_name="Roboto", font_size=32))
+        self.playlist_option = self.box.add(arcade.gui.UIDropdown(default=list(self.playlists.keys())[0], options=list(self.playlists.keys()), width=self.window.width / 2, height=self.window.height / 15, primary_style=button_style, dropdown_style=button_style, active_style=button_style))
+        self.music_label = self.box.add(arcade.gui.UILabel(text="Music File Path", font_name="Roboto", font_size=32))
+        self.add_music_input = self.box.add(arcade.gui.UIInputText(font_name="Roboto", font_size=32, width=self.window.width / 2, height=self.window.height / 10))
         self.add_music_button = self.box.add(UIFocusTextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='Add Music', style=button_style, width=self.window.width / 2, height=self.window.height / 10))
         self.add_music_button.on_click = lambda event: self.add_music()
 

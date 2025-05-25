@@ -9,6 +9,8 @@ pyglet.options.debug_gl = False
 
 import logging, datetime, json, sys, arcade
 
+arcade.ArcadeContext.atlas_size = (16384, 16384)
+
 from utils.utils import get_closest_resolution, print_debug_info, on_exception, ErrorView
 from utils.constants import log_dir, menu_background_color
 from menus.main import Main

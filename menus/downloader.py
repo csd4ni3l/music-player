@@ -6,7 +6,7 @@ import arcade, arcade.gui, os, json, threading, subprocess
 from arcade.gui.experimental.focus import UIFocusGroup
 
 from utils.utils import UIFocusTextureButton, ensure_yt_dlp
-from utils.constants import button_style, dropdown_style, yt_dlp_parameters
+from utils.constants import button_style
 from utils.preload import button_texture, button_hovered_texture
 
 class Downloader(arcade.gui.UIView):
@@ -37,12 +37,12 @@ class Downloader(arcade.gui.UIView):
 
         self.download_box = self.anchor.add(arcade.gui.UIBoxLayout(space_between=10), anchor_x="center", anchor_y="center")
 
-        self.url_name_label = self.download_box.add(arcade.gui.UILabel(text="URL or Name:", font_name="Protest Strike", font_size=36))
-        self.url_name_input = self.download_box.add(arcade.gui.UIInputText(font_name="Protest Strike", width=self.window.width / 2, height=self.window.height / 15, font_size=36))
+        self.url_name_label = self.download_box.add(arcade.gui.UILabel(text="URL or Name:", font_name="Roboto", font_size=36))
+        self.url_name_input = self.download_box.add(arcade.gui.UIInputText(font_name="Roboto", width=self.window.width / 2, height=self.window.height / 15, font_size=36))
         self.url_name_input.activate()
 
-        self.tab_label = self.download_box.add(arcade.gui.UILabel(text="Path:", font_name="Protest Strike", font_size=36))
-        self.tab_selector = self.download_box.add(arcade.gui.UIDropdown(default=self.tab_options[0], options=self.tab_options, width=self.window.width / 2, height=self.window.height / 15, primary_style=dropdown_style, dropdown_style=dropdown_style, active_style=dropdown_style))
+        self.tab_label = self.download_box.add(arcade.gui.UILabel(text="Path:", font_name="Roboto", font_size=36))
+        self.tab_selector = self.download_box.add(arcade.gui.UIDropdown(default=self.tab_options[0], options=self.tab_options, width=self.window.width / 2, height=self.window.height / 15, primary_style=button_style, dropdown_style=button_style, active_style=button_style))
 
         self.status_label = self.download_box.add(arcade.gui.UILabel(text="No errors.", font_size=16, text_color=arcade.color.LIGHT_GREEN))
 

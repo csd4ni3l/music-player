@@ -1,9 +1,10 @@
+from arcade.gui.widgets.buttons import UITextureButton
 import copy, pypresence, json
 
 import arcade, arcade.gui
 
-from utils.constants import button_style, dropdown_style, slider_style, settings, discord_presence_id, settings_start_category
-from utils.utils import FakePyPresence, UIFocusTextureButton
+from utils.constants import button_style, slider_style, settings, discord_presence_id, settings_start_category
+from utils.utils import FakePyPresence
 from utils.preload import button_texture, button_hovered_texture
 
 from arcade.gui.experimental.focus import UIFocusGroup
@@ -55,7 +56,7 @@ class Settings(arcade.gui.UIView):
 
         self.ui.push_handlers(self)
 
-        self.back_button = UIFocusTextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='<--', style=button_style, width=100, height=50)
+        self.back_button = arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='<--', style=button_style, width=100, height=50)
         self.back_button.on_click = lambda event: self.main_exit()
         self.top_box.add(self.back_button)
 
@@ -67,7 +68,7 @@ class Settings(arcade.gui.UIView):
 
     def display_categories(self):
         for category in settings:
-            category_button = UIFocusTextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text=category, style=button_style, width=self.window.width / 10, height=50)
+            category_button = arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text=category, style=button_style, width=self.window.width / 10, height=50)
 
             if not category == "Credits":
                 category_button.on_click = lambda event, category=category: self.display_category(category)
@@ -93,27 +94,27 @@ class Settings(arcade.gui.UIView):
         self.value_layout.clear()
 
         for setting in settings[category]:
-            label = arcade.gui.UILabel(text=setting, font_name="Protest Strike", font_size=28, text_color=arcade.color.WHITE )
+            label = arcade.gui.UILabel(text=setting, font_name="Roboto", font_size=28, text_color=arcade.color.WHITE )
             self.key_layout.add(label)
 
             setting_dict = settings[category][setting]
 
             if setting_dict['type'] == "option":
-                dropdown = arcade.gui.UIDropdown(options=setting_dict['options'], width=200, height=50, default=self.settings_dict.get(setting_dict["config_key"], setting_dict["options"][0]), active_style=dropdown_style, dropdown_style=dropdown_style, primary_style=dropdown_style)
+                dropdown = arcade.gui.UIDropdown(options=setting_dict['options'], width=200, height=50, default=self.settings_dict.get(setting_dict["config_key"], setting_dict["options"][0]), active_style=button_style, dropdown_style=button_style, primary_style=button_style)
                 dropdown.on_change = lambda _, setting=setting, dropdown=dropdown: self.update(setting, dropdown.value, "option")
                 self.value_layout.add(dropdown)
 
             elif setting_dict['type'] == "bool":
                 button_layout = self.value_layout.add(arcade.gui.UIBoxLayout(space_between=50, vertical=False))
 
-                on_radiobutton = UIFocusTextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text="ON", style=button_style, width=150, height=50)
+                on_radiobutton = arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text="ON", style=button_style, width=150, height=50)
                 self.on_radiobuttons[setting] = on_radiobutton
-                on_radiobutton.on_click = lambda _, setting=setting: self.update(setting, True, "bool")
+                on_radiobutton.on_click = lambda event, setting=setting: self.update(setting, True, "bool")
                 button_layout.add(on_radiobutton)
 
-                off_radiobutton = UIFocusTextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text="OFF", style=button_style, width=150, height=50)
+                off_radiobutton = arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text="OFF", style=button_style, width=150, height=50)
                 self.off_radiobuttons[setting] = off_radiobutton
-                off_radiobutton.on_click = lambda _, setting=setting: self.update(setting, False, "bool")
+                off_radiobutton.on_click = lambda event, setting=setting: self.update(setting, False, "bool")
                 button_layout.add(off_radiobutton)
 
                 if self.settings_dict.get(setting_dict["config_key"], setting_dict["default"]):
@@ -142,7 +143,7 @@ class Settings(arcade.gui.UIView):
                 self.sliders[setting] = slider
                 self.value_layout.add(slider)
 
-        self.apply_button = UIFocusTextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='Apply', style=button_style, width=200, height=100)
+        self.apply_button = arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='Apply', style=button_style, width=200, height=100)
         self.apply_button.on_click = lambda event: self.apply_settings()
         self.anchor.add(self.apply_button, anchor_x="right", anchor_y="bottom", align_x=-10, align_y=10)
 
@@ -205,7 +206,7 @@ class Settings(arcade.gui.UIView):
 
             self.create_layouts()
 
-            self.back_button = UIFocusTextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='<--', style=button_style, width=100, height=50)
+            self.back_button = arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='<--', style=button_style, width=100, height=50)
             self.back_button.on_click = lambda event: self.main_exit()
             self.top_box.add(self.back_button)
 
@@ -275,7 +276,7 @@ class Settings(arcade.gui.UIView):
         else:
             font_size = 12
 
-        self.credits_label = arcade.gui.UILabel(text=text, text_color=arcade.color.WHITE, font_name="Protest Strike", font_size=font_size, align="center", multiline=True)
+        self.credits_label = arcade.gui.UILabel(text=text, text_color=arcade.color.WHITE, font_name="Roboto", font_size=font_size, align="center", multiline=True)
 
         self.key_layout.add(self.credits_label)
 

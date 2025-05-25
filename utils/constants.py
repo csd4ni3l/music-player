@@ -7,47 +7,51 @@ menu_background_color = (17, 17, 17)
 log_dir = 'logs'
 discord_presence_id = 1368277020332523530
 
-audio_extensions = [
-    "3g2", "3gp", "aac", "ac3", "aiff", "alac", "amr", "ape", "au", "caf",
-    "dts", "flac", "gsm", "m4a", "mka", "mlp", "mmf", "mp2", "mp3",
-    "oga", "ogg", "opus", "ra", "rm", "sln", "tta", "vorbis", "voc", "vox",
-    "wav", "webm", "wma", "wv"
-]
+audio_extensions = ["mp3", "m4a", "mp4", "aac", "flac", "ogg", "opus", "wav"]
 
-yt_dlp_parameters = {
-  "final_ext": "mp3",
-  "format": "bestaudio/best",
-  "outtmpl": {"pl_thumbnail": "", "default": "downloaded_music.mp3"},
-  "postprocessors": [
-    {
-      "key": "FFmpegExtractAudio",
-      "nopostoverwrites": False,
-      "preferredcodec": "mp3",
-      "preferredquality": "5"
-    },
-    {
-      "add_chapters": True,
-      "add_infojson": "if_exists",
-      "add_metadata": True,
-      "key": "FFmpegMetadata"
-    },
-    { "already_have_thumbnail": False, "key": "EmbedThumbnail" }
-  ],
-  "writethumbnail": True
+DARK_GRAY = Color(45, 45, 45)
+GRAY = Color(70, 70, 70)
+LIGHT_GRAY = Color(150, 150, 150)
+PRIMARY = Color(0, 189, 126)
+PRIMARY_DARK = Color(0, 145, 96)
+DISABLED = Color(90, 90, 90)
+FONT_COLOR = arcade.color.BLACK
+FONT = "Roboto"
+FONT_SIZE = 14
+BIG_FONT_SIZE = 22
+
+button_style = {
+    "normal": UIFlatButtonStyle(font_name=FONT, font_size=FONT_SIZE, font_color=FONT_COLOR, bg=GRAY),
+    "hover": UIFlatButtonStyle(font_name=FONT, font_size=FONT_SIZE, font_color=FONT_COLOR, bg=PRIMARY),
+    "press": UIFlatButtonStyle(font_name=FONT, font_size=FONT_SIZE, font_color=FONT_COLOR, bg=PRIMARY_DARK),
+    "disabled": UIFlatButtonStyle(font_name=FONT, font_size=FONT_SIZE, font_color=LIGHT_GRAY, bg=DISABLED),
 }
 
-button_style = {'normal': UITextureButtonStyle(font_name="Protest Strike", font_color=arcade.color.BLACK), 'hover': UITextureButtonStyle(font_name="Protest Strike", font_color=arcade.color.BLACK),
-                'press': UITextureButtonStyle(font_name="Protest Strike", font_color=arcade.color.BLACK), 'disabled': UITextureButtonStyle(font_name="Protest Strike", font_color=arcade.color.BLACK)}
-big_button_style = {'normal': UITextureButtonStyle(font_name="Protest Strike", font_color=arcade.color.BLACK, font_size=26), 'hover': UITextureButtonStyle(font_name="Protest Strike", font_color=arcade.color.BLACK, font_size=26),
-                'press': UITextureButtonStyle(font_name="Protest Strike", font_color=arcade.color.BLACK, font_size=26), 'disabled': UITextureButtonStyle(font_name="Protest Strike", font_color=arcade.color.BLACK, font_size=26)}
+big_button_style = {
+    "normal": UIFlatButtonStyle(font_name=FONT, font_size=BIG_FONT_SIZE, font_color=FONT_COLOR, bg=GRAY),
+    "hover": UIFlatButtonStyle(font_name=FONT, font_size=BIG_FONT_SIZE, font_color=FONT_COLOR, bg=PRIMARY),
+    "press": UIFlatButtonStyle(font_name=FONT, font_size=BIG_FONT_SIZE, font_color=FONT_COLOR, bg=PRIMARY_DARK),
+    "disabled": UIFlatButtonStyle(font_name=FONT, font_size=BIG_FONT_SIZE, font_color=LIGHT_GRAY, bg=DISABLED),
+}
 
-dropdown_style = {'normal': UIFlatButtonStyle(font_name="Protest Strike", font_color=arcade.color.BLACK, bg=Color(128, 128, 128)), 'hover': UIFlatButtonStyle(font_name="Protest Strike", font_color=arcade.color.BLACK, bg=Color(49, 154, 54)),
-                  'press': UIFlatButtonStyle(font_name="Protest Strike", font_color=arcade.color.BLACK, bg=Color(128, 128, 128)), 'disabled': UIFlatButtonStyle(font_name="Protest Strike", font_color=arcade.color.BLACK, bg=Color(128, 128, 128))}
+slider_default_style = UISliderStyle(
+    bg=GRAY,
+    unfilled_track=DARK_GRAY,
+    filled_track=PRIMARY
+)
 
-slider_default_style = UISliderStyle(bg=Color(128, 128, 128), unfilled_track=Color(128, 128, 128), filled_track=Color(49, 154, 54))
-slider_hover_style = UISliderStyle(bg=Color(49, 154, 54), unfilled_track=Color(128, 128, 128), filled_track=Color(49, 154, 54))
+slider_hover_style = UISliderStyle(
+    bg=PRIMARY,
+    unfilled_track=DARK_GRAY,
+    filled_track=PRIMARY_DARK
+)
 
-slider_style = {'normal': slider_default_style, 'hover': slider_hover_style, 'press': slider_hover_style, 'disabled': slider_default_style}
+slider_style = {
+    "normal": slider_default_style,
+    "hover": slider_hover_style,
+    "press": slider_hover_style,
+    "disabled": slider_default_style,
+}
 
 settings = {
     "Music": {

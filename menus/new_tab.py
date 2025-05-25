@@ -2,7 +2,6 @@ import arcade, arcade.gui, os, json
 
 from utils.constants import button_style
 from utils.preload import button_texture, button_hovered_texture
-from utils.utils import UIFocusTextureButton
 
 from arcade.gui.experimental.focus import UIFocusGroup
 
@@ -34,17 +33,17 @@ class NewTab(arcade.gui.UIView):
         self.box = self.anchor.add(arcade.gui.UIBoxLayout(space_between=10), anchor_x="center", anchor_y="center")
 
         if self.current_mode == "files":
-            self.new_tab_label = self.box.add(arcade.gui.UILabel(text="New Tab Path:", font_name="Protest Strike", font_size=32))
-            self.new_tab_input = self.box.add(arcade.gui.UIInputText(font_name="Protest Strike", font_size=32, width=self.window.width / 2, height=self.window.height / 10))
-            self.new_tab_button = self.box.add(UIFocusTextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='Add new tab', style=button_style, width=self.window.width / 2, height=self.window.height / 10))
+            self.new_tab_label = self.box.add(arcade.gui.UILabel(text="New Tab Path:", font_name="Roboto", font_size=32))
+            self.new_tab_input = self.box.add(arcade.gui.UIInputText(font_name="Roboto", font_size=32, width=self.window.width / 2, height=self.window.height / 10))
+            self.new_tab_button = self.box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='Add new tab', style=button_style, width=self.window.width / 2, height=self.window.height / 10))
             self.new_tab_button.on_click = lambda event: self.add_tab()
         elif self.current_mode == "playlist":
-            self.new_tab_label = self.box.add(arcade.gui.UILabel(text="New Playlist Name:", font_name="Protest Strike", font_size=32))
-            self.new_tab_input = self.box.add(arcade.gui.UIInputText(font_name="Protest Strike", font_size=32, width=self.window.width / 2, height=self.window.height / 10))
-            self.new_tab_button = self.box.add(UIFocusTextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='Add new Playlist', style=button_style, width=self.window.width / 2, height=self.window.height / 10))
+            self.new_tab_label = self.box.add(arcade.gui.UILabel(text="New Playlist Name:", font_name="Roboto", font_size=32))
+            self.new_tab_input = self.box.add(arcade.gui.UIInputText(font_name="Roboto", font_size=32, width=self.window.width / 2, height=self.window.height / 10))
+            self.new_tab_button = self.box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='Add new Playlist', style=button_style, width=self.window.width / 2, height=self.window.height / 10))
             self.new_tab_button.on_click = lambda event: self.add_tab()
 
-        self.back_button = self.anchor.add(UIFocusTextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='<--', style=button_style, width=100, height=50), anchor_x="left", anchor_y="top", align_x=5, align_y=-5)
+        self.back_button = self.anchor.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='<--', style=button_style, width=100, height=50), anchor_x="left", anchor_y="top", align_x=5, align_y=-5)
         self.back_button.on_click = lambda event: self.main_exit()
 
         self.anchor.detect_focusable_widgets()

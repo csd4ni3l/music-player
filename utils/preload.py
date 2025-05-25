@@ -19,3 +19,5 @@ download_icon = arcade.load_texture("assets/graphics/download.png")
 plus_icon = arcade.load_texture("assets/graphics/plus.png")
 playlist_icon = arcade.load_texture("assets/graphics/playlist.png")
 files_icon = arcade.load_texture("assets/graphics/files.png")
+
+music_icon = arcade.load_texture("assets/graphics/music.png")
