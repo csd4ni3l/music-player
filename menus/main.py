@@ -54,7 +54,7 @@ class Main(arcade.gui.UIView):
             self.pypresence_client = FakePyPresence()
             self.pypresence_client.start_time = time.time()
 
-        self.tab_options = self.settings_dict.get("tab_options", ["~/Music", "~/Downloads"])
+        self.tab_options = self.settings_dict.get("tab_options", [os.path.join("~", "Music"), os.path.join("~", "Downloads")])
         self.tab_content = {}
         self.playlist_content = {}
         self.thumbnails = {}
@@ -158,6 +158,9 @@ class Main(arcade.gui.UIView):
         self.volume_slider = self.control_box.add(arcade.gui.UISlider(style=slider_style, width=self.window.width / 10, height=35, value=self.volume, max_value=100))
         self.volume_slider.on_change = self.on_volume_slider_change
 
+        self.no_music_label = self.anchor.add(arcade.gui.UILabel(text="No music files were found in this directory or playlist.", font_name="Roboto", font_size=24), anchor_x="center", anchor_y="center")
+        self.no_music_label.visible = False
+
         if self.current_mode == "files":
             self.show_content(os.path.expanduser(self.current_tab))
         elif self.current_mode == "playlist":
@@ -256,18 +259,20 @@ class Main(arcade.gui.UIView):
                 self.highest_score_file = f"{self.current_tab}/{matches[0][0]}"
                 for n, match in enumerate(matches):
                     music_filename = match[0]
-                    self.music_buttons[music_filename] = self.music_grid.add(Card(card_texture=self.thumbnails[f"{tab}/{music_filename}"], font_name="Roboto", font_size=13, text=music_filename, width=self.window.width / 6, height=self.window.height / 5), row=0, column=n)
+                    self.music_buttons[music_filename] = self.music_grid.add(Card(card_texture=self.thumbnails[f"{tab}/{music_filename}"], font_name="Roboto", font_size=13, text=music_filename, width=self.window.width / 7, height=self.window.height / 7), row=0, column=n)
                     self.music_buttons[music_filename].button.on_click = lambda event, tab=tab, music_filename=music_filename: self.queue.append(f"{tab}/{music_filename}")
             else:
                 self.music_grid.row_count = ceil(len(self.tab_content[tab]) / 5)
                 self.music_grid._update_size_hints()
 
                 self.highest_score_file = ""
+
+                self.no_music_label.visible = not self.tab_content[tab]
                 for n, music_filename in enumerate(self.tab_content[tab]):
                     row = n // 5
                     col = n % 5
 
-                    self.music_buttons[music_filename] = self.music_grid.add(Card(card_texture=self.thumbnails[f"{tab}/{music_filename}"], font_name="Roboto", font_size=13, text=music_filename, width=self.window.width / 6, height=self.window.height / 5), row=row, column=col)
+                    self.music_buttons[music_filename] = self.music_grid.add(Card(card_texture=self.thumbnails[f"{tab}/{music_filename}"], font_name="Roboto", font_size=13, text=music_filename, width=self.window.width / 7, height=self.window.height / 7), row=row, column=col)
                     self.music_buttons[music_filename].button.on_click = lambda event, tab=tab, music_filename=music_filename: self.queue.append(f"{tab}/{music_filename}")
 
         elif self.current_mode == "playlist":
@@ -287,6 +292,8 @@ class Main(arcade.gui.UIView):
                     self.music_grid._update_size_hints()
 
                     self.highest_score_file = ""
+
+                    self.no_music_label.visible = not self.playlist_content[tab]
 
                     for n, music_filename in enumerate(self.playlist_content[tab]):
                         row = n // 5

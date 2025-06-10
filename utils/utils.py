@@ -81,15 +81,15 @@ class UIFocusTextureButton(arcade.gui.UITextureButton):
 
 class Card(arcade.gui.UIBoxLayout):
     def __init__(self, width: int, height: int, font_name: str, font_size: int, text: str, card_texture: arcade.Texture, padding=10):
-        super().__init__(width=width, height=height, space_between=padding, align="bottom")
+        super().__init__(width=width, height=height, space_between=padding, align="top")
 
         self.button = self.add(arcade.gui.UITextureButton(
             texture=card_texture,
             texture_hovered=card_texture,
             texture_pressed=card_texture,
             texture_disabled=card_texture,
-            width=width / 2,
-            height=height * 0.5,
+            width=width,
+            height=height,
         ))
 
         wrapped_lines = textwrap.wrap(text, width=int(width / (font_size * 0.6)))
@@ -100,8 +100,8 @@ class Card(arcade.gui.UIBoxLayout):
             font_name=font_name,
             font_size=font_size,
             width=width,
-            height=height * 0.5,
-            multiline=True
+            height=height * 0.1,
+            multiline=True,
         ))
 
 def on_exception(*exc_info):

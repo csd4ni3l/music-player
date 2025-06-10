@@ -19,7 +19,7 @@ from arcade.experimental.controller_window import ControllerWindow
 sys.excepthook = on_exception
 
 pyglet.resource.path.append(os.getcwd())
-pyglet.font.add_directory('./assets/fonts')
+pyglet.font.add_directory(os.path.join(os.getcwd(), 'assets', 'fonts'))
 
 if not log_dir in os.listdir():
     os.makedirs(log_dir)

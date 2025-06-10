@@ -27,7 +27,7 @@ class Downloader(arcade.gui.UIView):
         with open("settings.json", "r", encoding="utf-8") as file:
             self.settings_dict = json.load(file)
 
-        self.tab_options = self.settings_dict.get("tab_options", ["~/Music", "~/Downloads"])
+        self.tab_options = self.settings_dict.get("tab_options", [os.path.join("~", "Music"), os.path.join("~", "Downloads")])
         self.yt_dl_buffer = ""
 
     def on_show_view(self):

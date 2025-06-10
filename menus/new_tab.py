@@ -20,7 +20,7 @@ class NewTab(arcade.gui.UIView):
         with open("settings.json", "r", encoding="utf-8") as file:
             self.settings_dict = json.load(file)
 
-        self.tab_options = self.settings_dict.get("tab_options", ["~/Music", "~/Downloads"])
+        self.tab_options = self.settings_dict.get("tab_options", [os.path.join("~", "Music"), os.path.join("~", "Downloads")])
         self.playlists = self.settings_dict.get("playlists", {})
 
         self.pypresence_client = pypresence_client
