@@ -3,7 +3,7 @@ import arcade, arcade.gui, pyglet
 
 from utils.preload import *
 from utils.constants import button_style, slider_style, audio_extensions, discord_presence_id
-from utils.utils import FakePyPresence, UIFocusTextureButton, Card, extract_metadata, get_audio_thumbnail_texture, truncate_end
+from utils.utils import FakePyPresence, UIFocusTextureButton, Card, extract_metadata, get_audio_thumbnail_texture, truncate_end, get_wrapped_text
 
 from math import ceil
 from thefuzz import process, fuzz
@@ -56,7 +56,9 @@ class Main(arcade.gui.UIView):
 
         self.tab_options = self.settings_dict.get("tab_options", [os.path.join("~", "Music"), os.path.join("~", "Downloads")])
         self.tab_content = {}
+        self.tab_wrapped_text = {}
         self.playlist_content = {}
+        self.playlist_wrapped_text = {}
         self.thumbnails = {}
         self.tab_buttons = {}
         self.music_buttons = {}
@@ -105,7 +107,7 @@ class Main(arcade.gui.UIView):
         self.scrollbar.size_hint = (0.02, 1)
         self.scroll_box.add(self.scrollbar)
 
-        self.music_grid = arcade.gui.UIGridLayout(horizontal_spacing=30, vertical_spacing=30, row_count=100, column_count=5)
+        self.music_grid = arcade.gui.UIGridLayout(horizontal_spacing=30, vertical_spacing=30, row_count=100, column_count=8)
         self.scroll_area.add(self.music_grid)
 
         # Utility
@@ -259,20 +261,21 @@ class Main(arcade.gui.UIView):
                 self.highest_score_file = f"{self.current_tab}/{matches[0][0]}"
                 for n, match in enumerate(matches):
                     music_filename = match[0]
-                    self.music_buttons[music_filename] = self.music_grid.add(Card(card_texture=self.thumbnails[f"{tab}/{music_filename}"], font_name="Roboto", font_size=13, text=music_filename, width=self.window.width / 7, height=self.window.height / 7), row=0, column=n)
+                    self.music_buttons[music_filename] = self.music_grid.add(Card(card_texture=self.thumbnails[f"{tab}/{music_filename}"], font_name="Roboto", font_size=13, text=music_filename, width=self.window.width / 11, height=self.window.height / 11), row=0, column=n)
                     self.music_buttons[music_filename].button.on_click = lambda event, tab=tab, music_filename=music_filename: self.queue.append(f"{tab}/{music_filename}")
             else:
-                self.music_grid.row_count = ceil(len(self.tab_content[tab]) / 5)
+                self.music_grid.row_count = ceil(len(self.tab_content[tab]) / 8)
                 self.music_grid._update_size_hints()
 
                 self.highest_score_file = ""
 
                 self.no_music_label.visible = not self.tab_content[tab]
-                for n, music_filename in enumerate(self.tab_content[tab]):
-                    row = n // 5
-                    col = n % 5
 
-                    self.music_buttons[music_filename] = self.music_grid.add(Card(card_texture=self.thumbnails[f"{tab}/{music_filename}"], font_name="Roboto", font_size=13, text=music_filename, width=self.window.width / 7, height=self.window.height / 7), row=row, column=col)
+                for n, music_filename in enumerate(self.tab_content[tab]):
+                    row = n // 8
+                    col = n % 8
+
+                    self.music_buttons[music_filename] = self.music_grid.add(Card(card_texture=self.thumbnails[f"{tab}/{music_filename}"], font_name="Roboto", font_size=13, text=self.tab_wrapped_text[tab][n], width=self.window.width / 11, height=self.window.height / 11), row=row, column=col)
                     self.music_buttons[music_filename].button.on_click = lambda event, tab=tab, music_filename=music_filename: self.queue.append(f"{tab}/{music_filename}")
 
         elif self.current_mode == "playlist":
@@ -284,11 +287,11 @@ class Main(arcade.gui.UIView):
                     self.highest_score_file = matches[0][0]
                     for n, match in enumerate(matches):
                         music_filename = match[0]
-                        self.music_buttons[music_filename] = self.music_grid.add(Card(card_texture=self.thumbnails[music_filename], font_name="Roboto", font_size=13, text=music_filename, width=self.window.width / 6, height=self.window.height / 5), row=0, column=n)
+                        self.music_buttons[music_filename] = self.music_grid.add(Card(card_texture=self.thumbnails[music_filename], font_name="Roboto", font_size=13, text=music_filename, width=self.window.width / 11, height=self.window.height / 11), row=0, column=n)
                         self.music_buttons[music_filename].button.on_click = lambda event, tab=tab, music_filename=music_filename: self.queue.append(music_filename)
 
                 else:
-                    self.music_grid.row_count = ceil((len(self.playlist_content[tab]) + 1) / 5)
+                    self.music_grid.row_count = ceil((len(self.playlist_content[tab]) + 1) / 8)
                     self.music_grid._update_size_hints()
 
                     self.highest_score_file = ""
@@ -296,34 +299,39 @@ class Main(arcade.gui.UIView):
                     self.no_music_label.visible = not self.playlist_content[tab]
 
                     for n, music_filename in enumerate(self.playlist_content[tab]):
-                        row = n // 5
-                        col = n % 5
+                        row = n // 8
+                        col = n % 8
 
-                        self.music_buttons[music_filename] = self.music_grid.add(Card(card_texture=self.thumbnails[music_filename], font_name="Roboto", font_size=13, text=music_filename, width=self.window.width / 6, height=self.window.height / 5), row=row, column=col)
+                        self.music_buttons[music_filename] = self.music_grid.add(Card(card_texture=self.thumbnails[music_filename], font_name="Roboto", font_size=13, text=self.playlist_wrapped_text[tab][n], width=self.window.width / 11, height=self.window.height / 11), row=row, column=col)
                         self.music_buttons[music_filename].button.on_click = lambda event, tab=tab, music_filename=music_filename: self.queue.append(music_filename)
-                row = (n + 1) // 5
-                col = (n + 1) % 5
+                row = (n + 1) // 8
+                col = (n + 1) % 8
 
-                self.music_buttons["add_music"] = self.music_grid.add(Card(card_texture=music_icon, font_name="Roboto", font_size=13, text="Add Music", width=self.window.width / 6, height=self.window.height / 5), row=row, column=col)
+                self.music_buttons["add_music"] = self.music_grid.add(Card(card_texture=music_icon, font_name="Roboto", font_size=13, text="Add Music", width=self.window.width / 11, height=self.window.height / 11), row=row, column=col)
                 self.music_buttons["add_music"].button.on_click = lambda event: self.add_music()
 
         self.update_buttons()
 
     def load_content(self):
         for tab in self.tab_options:
-            self.tab_content[os.path.expanduser(tab)] = []
-            for filename in os.listdir(os.path.expanduser(tab)):
-                if filename.split(".")[-1] in audio_extensions:
-                    if f"{os.path.expanduser(tab)}/{filename}" not in self.thumbnails:
-                        self.thumbnails[f"{os.path.expanduser(tab)}/{filename}"] = get_audio_thumbnail_texture(f"{os.path.expanduser(tab)}/{filename}", self.window.size)
-                    self.tab_content[os.path.expanduser(tab)].append(filename)
+            expanded_tab = os.path.expanduser(tab)
+            self.tab_content[expanded_tab] = []
 
-        for content in self.settings_dict.get("playlists", {}).values():
+            for filename in os.listdir(expanded_tab):
+                if filename.split(".")[-1] in audio_extensions:
+                    if f"{expanded_tab}/{filename}" not in self.thumbnails:
+                        self.thumbnails[f"{expanded_tab}/{filename}"] = get_audio_thumbnail_texture(f"{expanded_tab}/{filename}", self.window.size)
+                    self.tab_content[expanded_tab].append(filename)
+
+            self.tab_wrapped_text[expanded_tab] = get_wrapped_text(self.tab_content[expanded_tab], self.window.width // 11, 14)
+
+        for playlist, content in self.settings_dict.get("playlists", {}).items():
             for file in content:
                 if file not in self.thumbnails:
                     self.thumbnails[file] = get_audio_thumbnail_texture(file, self.window.size)
 
-        self.playlist_content = self.settings_dict.get("playlists", {})
+            self.playlist_content[playlist] = content
+            self.playlist_wrapped_text[playlist] = get_wrapped_text(content, self.window.width // 11, 14)
 
     def load_tabs(self):
         self.tab_box.clear()

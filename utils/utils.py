@@ -80,7 +80,7 @@ class UIFocusTextureButton(arcade.gui.UITextureButton):
             self.resize(width=self.width / 1.1, height=self.height / 1.1)
 
 class Card(arcade.gui.UIBoxLayout):
-    def __init__(self, width: int, height: int, font_name: str, font_size: int, text: str, card_texture: arcade.Texture, padding=10):
+    def __init__(self, width: int, height: int, font_name: str, font_size: int, text: str, card_texture: arcade.Texture, padding=10, new_lines=3):
         super().__init__(width=width, height=height, space_between=padding, align="top")
 
         self.button = self.add(arcade.gui.UITextureButton(
@@ -92,17 +92,35 @@ class Card(arcade.gui.UIBoxLayout):
             height=height,
         ))
 
-        wrapped_lines = textwrap.wrap(text, width=int(width / (font_size * 0.6)))
-        wrapped_text = "\n".join(wrapped_lines)
-
         self.label = self.add(arcade.gui.UILabel(
-            text=wrapped_text,
+            text=text,
             font_name=font_name,
             font_size=font_size,
             width=width,
             height=height * 0.1,
             multiline=True,
         ))
+
+def get_wrapped_text(text_list: list[str], width: int, font_size: int):
+    max_lines = 0
+    wrapped_line_list = []
+    wrapped_text_list = []
+
+    for text in text_list: # get max lines and wrap text
+        wrapped_lines = textwrap.wrap(text, width=int(width / (font_size * 0.6)))
+        if len(wrapped_lines) > max_lines:
+            max_lines = len(wrapped_lines)
+
+        wrapped_line_list.append(wrapped_lines)
+
+    for wrapped_lines in wrapped_line_list:
+        if len(wrapped_lines) < max_lines: # adjust text to maximum lines
+            for i in range(max_lines - len(wrapped_lines)):
+                wrapped_lines.append("")
+
+        wrapped_text_list.append("\n".join(wrapped_lines))
+
+    return wrapped_text_list
 
 def on_exception(*exc_info):
     logging.error(f"Unhandled exception:\n{''.join(traceback.format_exception(exc_info[1], limit=None))}")
