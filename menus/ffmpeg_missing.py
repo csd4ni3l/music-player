@@ -38,6 +38,7 @@ class FFmpegMissing(arcade.gui.UIView):
             logging.debug("Extracting FFmpeg...")
             with zipfile.ZipFile(file_path, 'r') as zip_ref:
                 zip_ref.extractall(bin_dir)
+                
             ffmpeg_path = os.path.join(bin_dir, "ffmpeg")
             os.chmod(ffmpeg_path, 0o755)
 

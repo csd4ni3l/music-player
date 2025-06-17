@@ -1,4 +1,4 @@
-import logging, sys, traceback, os, re, platform, urllib.request, zipfile, subprocess, textwrap, io, base64
+import logging, sys, traceback, os, re, platform, urllib.request, textwrap, io, base64
 from mutagen.easyid3 import EasyID3
 from mutagen import File
 from PIL import Image
@@ -80,7 +80,7 @@ class UIFocusTextureButton(arcade.gui.UITextureButton):
             self.resize(width=self.width / 1.1, height=self.height / 1.1)
 
 class Card(arcade.gui.UIBoxLayout):
-    def __init__(self, width: int, height: int, font_name: str, font_size: int, text: str, card_texture: arcade.Texture, padding=10, new_lines=3):
+    def __init__(self, width: int, height: int, font_name: str, font_size: int, text: str, card_texture: arcade.Texture, padding=10):
         super().__init__(width=width, height=height, space_between=padding, align="top")
 
         self.button = self.add(arcade.gui.UITextureButton(
@@ -90,6 +90,7 @@ class Card(arcade.gui.UIBoxLayout):
             texture_disabled=card_texture,
             width=width,
             height=height,
+            interaction_buttons=[arcade.MOUSE_BUTTON_LEFT, arcade.MOUSE_BUTTON_RIGHT]
         ))
 
         self.label = self.add(arcade.gui.UILabel(
