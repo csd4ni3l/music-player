@@ -61,7 +61,10 @@ class FileManager(arcade.gui.UIView):
 
     def get_content(self, directory):
         if not directory in self.content_cache or time.perf_counter() - self.content_cache[directory][-1] >= 30:
-            entries = os.listdir(directory)
+            try:
+                entries = os.listdir(directory)
+            except PermissionError:
+                return None
             
             filtered = [
                 entry for entry in entries
@@ -116,6 +119,9 @@ class FileManager(arcade.gui.UIView):
                 self.file_buttons[-1].on_click = lambda event, file=f"{self.current_directory}/{file}": self.submit(file)
         
     def change_directory(self, directory):
+        if directory.startswith("//"): # Fix / paths
+            directory = directory[1:]
+
         self.current_directory = directory
         
         self.show_directory()

@@ -83,7 +83,7 @@ class Main(arcade.gui.UIView):
         self.load_content()
 
         self.create_ui()
-
+        
     def create_ui(self):
         self.anchor = self.add_widget(arcade.gui.UIAnchorLayout(size_hint=(1, 1)))
 
@@ -162,6 +162,9 @@ class Main(arcade.gui.UIView):
 
         self.no_music_label = self.anchor.add(arcade.gui.UILabel(text="No music files were found in this directory or playlist.", font_name="Roboto", font_size=24), anchor_x="center", anchor_y="center")
         self.no_music_label.visible = False
+
+        self.no_playlists_label = self.anchor.add(arcade.gui.UILabel(text="You have no playlists.", font_name="Roboto", font_size=24))
+        self.no_playlists_label.visible = False
 
         if self.current_mode == "files":
             self.show_content(os.path.expanduser(self.current_tab))
@@ -291,6 +294,8 @@ class Main(arcade.gui.UIView):
 
             n = 0
 
+            self.no_playlists_label.visible = not self.playlist_content[tab]
+
             if self.current_playlist:
                 if not self.search_term == "":
                     matches = process.extract(self.search_term, self.playlist_content[tab], limit=5, processor=lambda text: text.lower(), scorer=fuzz.partial_token_sort_ratio)
@@ -347,6 +352,11 @@ class Main(arcade.gui.UIView):
         
         for tab in self.tab_options:
             expanded_tab = os.path.expanduser(tab)
+
+            if not os.path.exists(expanded_tab) or not os.path.isdir(expanded_tab):
+                self.tab_options.remove(tab)
+                return
+
             self.tab_content[expanded_tab] = []
 
             for filename in os.listdir(expanded_tab):
@@ -359,6 +369,10 @@ class Main(arcade.gui.UIView):
         
         for playlist, content in self.settings_dict.get("playlists", {}).items():
             for file in content:
+                if not os.path.exists(file) or not os.path.isfile(file):
+                    content.remove(file) # also removes reference from self.settings_dict["playlists"]
+                    continue
+
                 if file not in self.thumbnails:
                     self.thumbnails[file] = get_audio_thumbnail_texture(file, self.window.size)
 
@@ -373,6 +387,9 @@ class Main(arcade.gui.UIView):
                 self.tab_buttons[os.path.expanduser(tab)] = self.tab_box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text=os.path.basename(os.path.normpath(os.path.expanduser(tab))), style=button_style, width=self.window.width / 10, height=self.window.height / 15))
                 self.tab_buttons[os.path.expanduser(tab)].on_click = lambda event, tab=os.path.expanduser(tab): self.show_content(os.path.expanduser(tab))
         elif self.current_mode == "playlist":
+            if not self.playlist_content:
+                self.no_playlists_label.visible = True
+
             for playlist in self.playlist_content:
                 self.tab_buttons[playlist] = self.tab_box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text=playlist, style=button_style, width=self.window.width / 10, height=self.window.height / 15))
                 self.tab_buttons[playlist].on_click = lambda event, playlist=playlist: self.show_content(playlist)

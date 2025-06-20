@@ -80,7 +80,7 @@ class Downloader(arcade.gui.UIView):
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
         for line in process.stdout:
-             self.yt_dl_buffer = line
+             self.yt_dl_buffer = line.strip()
 
         process.wait()
 

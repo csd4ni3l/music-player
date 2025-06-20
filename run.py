@@ -11,7 +11,7 @@ import logging, datetime, json, sys, arcade
 
 arcade.ArcadeContext.atlas_size = (16384, 16384)
 
-from utils.utils import get_closest_resolution, print_debug_info, on_exception, ErrorView
+from utils.utils import get_closest_resolution, print_debug_info, on_exception
 from utils.constants import log_dir, menu_background_color
 from menus.main import Main
 from arcade.experimental.controller_window import ControllerWindow
@@ -77,7 +77,10 @@ window = ControllerWindow(width=resolution[0], height=resolution[1], title='Musi
 if vsync:
     window.set_vsync(True)
     display_mode = window.display.get_default_screen().get_mode()
-    refresh_rate = display_mode.rate
+    if display_mode:
+        refresh_rate = display_mode.rate
+    else:
+        refresh_rate = 60
     window.set_update_rate(1 / refresh_rate)
     window.set_draw_rate(1 / refresh_rate)
 elif not fps_limit == 0:
