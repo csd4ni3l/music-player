@@ -171,7 +171,7 @@ class Main(arcade.gui.UIView):
         elif self.current_mode == "playlist":
             self.show_content(self.current_playlist)
 
-        arcade.schedule(self.update_presence, 2.5)
+        arcade.schedule(self.update_presence, 3)
 
         self.update_presence(None)
 
@@ -215,9 +215,9 @@ class Main(arcade.gui.UIView):
         self.highest_score_file = ""
         self.search_term = ""
 
-        self.load_tabs()
-
         self.reload()
+
+        self.load_tabs()
 
     def skip_sound(self):
         if not self.current_music_player is None:
@@ -294,8 +294,6 @@ class Main(arcade.gui.UIView):
 
             n = 0
 
-            self.no_playlists_label.visible = not self.playlist_content[tab]
-
             if self.current_playlist:
                 if not self.search_term == "":
                     matches = process.extract(self.search_term, self.playlist_content[tab], limit=5, processor=lambda text: text.lower(), scorer=fuzz.partial_token_sort_ratio)
@@ -355,7 +353,7 @@ class Main(arcade.gui.UIView):
 
             if not os.path.exists(expanded_tab) or not os.path.isdir(expanded_tab):
                 self.tab_options.remove(tab)
-                return
+                continue
 
             self.tab_content[expanded_tab] = []
 
@@ -372,7 +370,7 @@ class Main(arcade.gui.UIView):
                 if not os.path.exists(file) or not os.path.isfile(file):
                     content.remove(file) # also removes reference from self.settings_dict["playlists"]
                     continue
-
+                
                 if file not in self.thumbnails:
                     self.thumbnails[file] = get_audio_thumbnail_texture(file, self.window.size)
 
@@ -387,9 +385,6 @@ class Main(arcade.gui.UIView):
                 self.tab_buttons[os.path.expanduser(tab)] = self.tab_box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text=os.path.basename(os.path.normpath(os.path.expanduser(tab))), style=button_style, width=self.window.width / 10, height=self.window.height / 15))
                 self.tab_buttons[os.path.expanduser(tab)].on_click = lambda event, tab=os.path.expanduser(tab): self.show_content(os.path.expanduser(tab))
         elif self.current_mode == "playlist":
-            if not self.playlist_content:
-                self.no_playlists_label.visible = True
-
             for playlist in self.playlist_content:
                 self.tab_buttons[playlist] = self.tab_box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text=playlist, style=button_style, width=self.window.width / 10, height=self.window.height / 15))
                 self.tab_buttons[playlist].on_click = lambda event, playlist=playlist: self.show_content(playlist)
@@ -417,6 +412,8 @@ class Main(arcade.gui.UIView):
                 music_name = f"{artist} - {title}"
 
                 if self.settings_dict.get("normalize_audio", True):
+                    self.current_music_label.text = "Normalizing audio..."
+                    self.window.draw(delta_time)
                     try:
                         audio = AudioSegment.from_file(music_path)
 
@@ -534,6 +531,8 @@ class Main(arcade.gui.UIView):
 
     def reload(self):
         self.load_content()
+
+        self.no_playlists_label.visible = not self.playlist_content
 
         if self.current_mode == "files":
             self.show_content(os.path.expanduser(self.current_tab))
