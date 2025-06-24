@@ -1,6 +1,8 @@
-import logging, sys, traceback, os, re, platform, urllib.request, textwrap, io, base64
+import logging, sys, traceback, os, re, platform, urllib.request, textwrap, io, base64, tempfile
 from mutagen.easyid3 import EasyID3
+from mutagen.id3 import ID3
 from mutagen import File
+from pydub import AudioSegment
 from PIL import Image
 from utils.constants import menu_background_color
 import pyglet, arcade, arcade.gui
@@ -267,3 +269,43 @@ def get_audio_thumbnail_texture(audio_path: str, window_resolution: tuple) -> ar
 
     from utils.preload import music_icon
     return music_icon
+
+def adjust_volume(input_path, volume):
+    try:
+        easy_tags = EasyID3(input_path)
+        tags = dict(easy_tags)
+        tags = {k: v[0] if isinstance(v, list) else v for k, v in tags.items()}
+    except Exception as e:
+        tags = {}
+
+    try:
+        id3 = ID3(input_path)
+        apic_frames = [f for f in id3.values() if f.FrameID == "APIC"]
+        cover_path = None
+        if apic_frames:
+            apic = apic_frames[0]
+            ext = ".jpg" if apic.mime == "image/jpeg" else ".png"
+            temp_cover = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+            temp_cover.write(apic.data)
+            temp_cover.close()
+            cover_path = temp_cover.name
+        else:
+            cover_path = None
+    except Exception as e:
+        cover_path = None
+
+    audio = AudioSegment.from_file(input_path)
+    
+    if int(audio.dbFS) == volume:
+        return
+    
+    export_args = {
+        "format": "mp3",
+        "tags": tags
+    }
+    if cover_path:
+        export_args["cover"] = cover_path
+
+    change = volume - audio.dBFS
+    audio.apply_gain(change)
+    audio.export(input_path, **export_args)

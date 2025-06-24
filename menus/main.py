@@ -3,11 +3,10 @@ import arcade, pyglet
 
 from utils.preload import *
 from utils.constants import button_style, slider_style, audio_extensions, discord_presence_id
-from utils.utils import FakePyPresence, UIFocusTextureButton, Card, extract_metadata, get_audio_thumbnail_texture, truncate_end, get_wrapped_text
+from utils.utils import FakePyPresence, UIFocusTextureButton, Card, extract_metadata, get_audio_thumbnail_texture, truncate_end, get_wrapped_text, adjust_volume
 
 from math import ceil
 from thefuzz import process, fuzz
-from pydub import AudioSegment
 
 from arcade.gui.experimental.scroll_area import UIScrollArea, UIScrollBar
 
@@ -134,6 +133,9 @@ class Main(arcade.gui.UIView):
         # Controls
 
         self.control_box = self.ui_box.add(arcade.gui.UIBoxLayout(size_hint=(0.95, 0.1), space_between=10, vertical=False))
+        
+        self.current_music_thumbnail_image = self.control_box.add(arcade.gui.UIImage(texture=music_icon, width=self.window.width / 25, height=self.window.height / 15))
+
         self.current_music_label = self.control_box.add(arcade.gui.UILabel(text=truncate_end(self.current_music_name, int(self.window.width / 30)) if self.current_music_name else "No songs playing", font_name="Roboto", font_size=16))
         self.time_label = self.control_box.add(arcade.gui.UILabel(text="00:00", font_name="Roboto", font_size=16))
 
@@ -415,13 +417,7 @@ class Main(arcade.gui.UIView):
                     self.current_music_label.text = "Normalizing audio..."
                     self.window.draw(delta_time)
                     try:
-                        audio = AudioSegment.from_file(music_path)
-
-                        if int(audio.dBFS) != self.settings_dict.get("normalized_volume", -8):
-                            change = self.settings_dict.get("normalized_volume", -8) - audio.dBFS
-                            audio = audio.apply_gain(change)
-
-                            audio.export(music_path, format="mp3")
+                        adjust_volume(music_path, self.settings_dict.get("normalized_volume", -8))
                     except Exception as e:
                         logging.error(f"Couldn't normalize volume for {music_path}: {e}")
 
@@ -437,7 +433,8 @@ class Main(arcade.gui.UIView):
                 self.current_length = self.loaded_sounds[music_name].get_length()
 
                 self.current_music_name = music_name
-                self.current_music_label.text = truncate_end(music_name, int(self.window.width / 25))
+                self.current_music_thumbnail_image.texture = self.thumbnails[music_path]
+                self.current_music_label.text = truncate_end(music_name, int(self.window.width / 30))
                 self.time_label.text = "00:00"
                 self.progressbar.max_value = self.current_length
                 self.progressbar.value = 0

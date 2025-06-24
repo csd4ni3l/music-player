@@ -1,11 +1,10 @@
 from mutagen.easyid3 import EasyID3
-from pydub import AudioSegment
 
 import arcade, arcade.gui, os, json, threading, subprocess
 
 from arcade.gui.experimental.focus import UIFocusGroup
 
-from utils.utils import UIFocusTextureButton, ensure_yt_dlp
+from utils.utils import ensure_yt_dlp, adjust_volume
 from utils.constants import button_style
 from utils.preload import button_texture, button_hovered_texture
 
@@ -132,14 +131,9 @@ class Downloader(arcade.gui.UIView):
                 return
 
             if self.settings_dict.get("normalize_audio", True):
+                self.yt_dl_buffer = "Normalizing audio..."
                 try:
-                    audio = AudioSegment.from_file("downloaded_music.mp3")
-
-                    if int(audio.dBFS) != self.settings_dict.get("normalized_volume", -8):
-                        change = self.settings_dict.get("normalized_volume", -8) - audio.dBFS
-                        audio = audio.apply_gain(change)
-
-                        audio.export("downloaded_music.mp3", format="mp3")
+                    adjust_volume("downloaded_music.mp3", self.settings_dict.get("normalized_volume", -8))
 
                 except Exception as e:
                     self.yt_dl_buffer = f"ERROR: Could not normalize volume due to an error: {e}"
