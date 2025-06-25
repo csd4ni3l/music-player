@@ -1,4 +1,4 @@
-import logging, sys, traceback, os, re, platform, urllib.request, textwrap, io, base64, tempfile
+import logging, sys, traceback, os, re, platform, urllib.request, io, base64, tempfile
 
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3
@@ -8,7 +8,8 @@ from pydub import AudioSegment
 
 from PIL import Image
 
-from utils.constants import menu_background_color
+from utils.constants import menu_background_color, button_style
+from utils.preload import button_texture, button_hovered_texture
 
 import pyglet, arcade, arcade.gui
 
@@ -86,49 +87,27 @@ class UIFocusTextureButton(arcade.gui.UITextureButton):
         else:
             self.resize(width=self.width / 1.1, height=self.height / 1.1)
 
-class Card(arcade.gui.UIBoxLayout):
-    def __init__(self, width: int, height: int, font_name: str, font_size: int, text: str, card_texture: arcade.Texture, padding=10):
-        super().__init__(width=width, height=height, space_between=padding, align="top")
+class ListItem(arcade.gui.UIBoxLayout):
+    def __init__(self, width: int, height: int, font_name: str, font_size: int, text: str, texture: arcade.Texture, padding=10):
+        super().__init__(width=width, height=height, space_between=padding, align="top", vertical=False)
+
+        self.image = self.add(arcade.gui.UIImage(
+            texture=texture,
+            width=width * 0.1,
+            height=height
+        ))
 
         self.button = self.add(arcade.gui.UITextureButton(
-            texture=card_texture,
-            texture_hovered=card_texture,
-            texture_pressed=card_texture,
-            texture_disabled=card_texture,
-            width=width,
+            text=text,
+            texture=button_texture,
+            texture_hovered=button_hovered_texture,
+            texture_pressed=button_texture,
+            texture_disabled=button_texture,
+            style=button_style,
+            width=width * 0.9,
             height=height,
             interaction_buttons=[arcade.MOUSE_BUTTON_LEFT, arcade.MOUSE_BUTTON_RIGHT]
         ))
-
-        self.label = self.add(arcade.gui.UILabel(
-            text=text,
-            font_name=font_name,
-            font_size=font_size,
-            width=width,
-            height=height * 0.1,
-            multiline=True,
-        ))
-
-def get_wrapped_text(text_list: list[str], width: int, font_size: int):
-    max_lines = 0
-    wrapped_line_list = []
-    wrapped_text_list = []
-
-    for text in text_list: # get max lines and wrap text
-        wrapped_lines = textwrap.wrap(text, width=int(width / (font_size * 0.6)))
-        if len(wrapped_lines) > max_lines:
-            max_lines = len(wrapped_lines)
-
-        wrapped_line_list.append(wrapped_lines)
-
-    for wrapped_lines in wrapped_line_list:
-        if len(wrapped_lines) < max_lines: # adjust text to maximum lines
-            for i in range(max_lines - len(wrapped_lines)):
-                wrapped_lines.append("")
-
-        wrapped_text_list.append("\n".join(wrapped_lines))
-
-    return wrapped_text_list
 
 def on_exception(*exc_info):
     logging.error(f"Unhandled exception:\n{''.join(traceback.format_exception(exc_info[1], limit=None))}")
