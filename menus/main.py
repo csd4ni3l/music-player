@@ -149,7 +149,7 @@ class Main(arcade.gui.UIView):
         self.skip_button = self.control_box.add(UIFocusTextureButton(texture=stop_icon))
         self.skip_button.on_click = lambda event: self.skip_sound()
 
-        self.loop_button = self.control_box.add(UIFocusTextureButton(texture=no_loop_icon if not self.current_music_player or self.current_music_player.loop else loop_icon))
+        self.loop_button = self.control_box.add(UIFocusTextureButton(texture=no_loop_icon if self.current_music_player and self.current_music_player.loop else loop_icon))
         self.loop_button.on_click = lambda event: self.loop_sound()
 
         self.shuffle_button = self.control_box.add(UIFocusTextureButton(texture=shuffle_icon))
