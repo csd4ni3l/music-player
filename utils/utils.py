@@ -1,10 +1,15 @@
 import logging, sys, traceback, os, re, platform, urllib.request, textwrap, io, base64, tempfile
+
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3
 from mutagen import File
+
 from pydub import AudioSegment
+
 from PIL import Image
+
 from utils.constants import menu_background_color
+
 import pyglet, arcade, arcade.gui
 
 def dump_platform():
@@ -296,7 +301,7 @@ def adjust_volume(input_path, volume):
 
     audio = AudioSegment.from_file(input_path)
     
-    if int(audio.dbFS) == volume:
+    if int(audio.dBFS) == volume:
         return
     
     export_args = {

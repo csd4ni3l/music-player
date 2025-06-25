@@ -126,6 +126,11 @@ class FileManager(arcade.gui.UIView):
         
         self.show_directory()
 
+    def on_key_press(self, symbol: int, modifiers: int) -> bool | None:
+        if symbol == arcade.key.ESCAPE:
+            from menus.main import Main
+            self.window.show_view(Main(*self.args))
+
     def on_mouse_press(self, x, y, button, modifiers):
        if button == arcade.MOUSE_BUTTON_RIGHT:
            self.change_directory(os.path.dirname(self.current_directory))

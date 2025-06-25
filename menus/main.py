@@ -9,6 +9,7 @@ from math import ceil
 from thefuzz import process, fuzz
 
 from arcade.gui.experimental.scroll_area import UIScrollArea, UIScrollBar
+from arcade.gui.experimental.focus import UIFocusGroup
 
 class Main(arcade.gui.UIView):
     def __init__(self, pypresence_client: None | FakePyPresence | pypresence.Presence=None, current_mode: str | None=None, current_music_name: str | None=None,
@@ -84,7 +85,7 @@ class Main(arcade.gui.UIView):
         self.create_ui()
         
     def create_ui(self):
-        self.anchor = self.add_widget(arcade.gui.UIAnchorLayout(size_hint=(1, 1)))
+        self.anchor = self.add_widget(UIFocusGroup(size_hint=(1, 1)))
 
         self.ui_box = self.anchor.add(arcade.gui.UIBoxLayout(size_hint=(1, 1), space_between=10))
 
@@ -209,6 +210,8 @@ class Main(arcade.gui.UIView):
             self.loop_button.texture_hovered = loop_icon
             self.loop_button.texture_pressed = loop_icon
 
+        self.anchor.detect_focusable_widgets()
+
     def change_mode(self):
         self.current_mode = "playlist" if self.current_mode == "files" else "files"
 
@@ -235,6 +238,7 @@ class Main(arcade.gui.UIView):
             self.current_music_player.delete()
             self.current_music_player = None
             self.progressbar.value = 0
+            self.current_music_thumbnail_image.texture = music_icon
             self.current_music_label.text = "No songs playing"
             self.time_label.text = "00:00"
 
@@ -327,7 +331,7 @@ class Main(arcade.gui.UIView):
                 self.music_buttons["add_music"] = self.music_grid.add(Card(card_texture=music_icon, font_name="Roboto", font_size=13, text="Add Music", width=self.window.width / 11, height=self.window.height / 11), row=row, column=col)
                 self.music_buttons["add_music"].button.on_click = lambda event: self.add_music()
 
-        self.update_buttons()
+        self.anchor.detect_focusable_widgets()
 
     def music_button_click(self, event, music_path):
         if event.button == arcade.MOUSE_BUTTON_LEFT:
@@ -465,10 +469,6 @@ class Main(arcade.gui.UIView):
             self.current_music_player.seek(self.current_music_player.time + 5)
         elif symbol == arcade.key.LEFT and self.current_music_player:
             self.current_music_player.seek(self.current_music_player.time - 5)
-        elif symbol == arcade.key.UP and self.current_music_player:
-            self.current_music_player.pitch += 0.1 # type: ignore
-        elif symbol == arcade.key.DOWN and self.current_music_player:
-            self.current_music_player.pitch -= 0.1 # type: ignore
         elif symbol == arcade.key.BACKSPACE:
             self.search_term = self.search_term[:-1]
             if self.current_mode == "files":
@@ -490,6 +490,12 @@ class Main(arcade.gui.UIView):
                 self.show_content(os.path.expanduser(self.current_tab))
             elif self.current_mode == "playlist":
                 self.show_content(self.current_playlist)
+
+    def on_button_press(self, controller, name):
+        if name == "start":
+            self.pause_start()
+        elif name == "b":
+            self.skip_sound()
 
     def on_text(self, text):
         if not text.isprintable() or text == " ":
@@ -536,7 +542,7 @@ class Main(arcade.gui.UIView):
         elif self.current_mode == "playlist":
             self.show_content(self.current_playlist)
 
-        self.update_buttons()
+        self.anchor.detect_focusable_widgets()
 
     def update_presence(self, _):
         if self.current_music_label.text != "No songs playing" and self.current_music_player:
