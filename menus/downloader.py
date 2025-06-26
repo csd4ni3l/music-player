@@ -1,6 +1,7 @@
-from mutagen.easyid3 import EasyID3
+from mutagen.id3 import ID3, TIT2, TPE1, WXXX
+from mutagen.mp3 import MP3
 
-import arcade, arcade.gui, os, json, threading, subprocess
+import arcade, arcade.gui, os, json, threading, subprocess, traceback
 
 from arcade.gui.experimental.focus import UIFocusGroup
 
@@ -106,7 +107,7 @@ class Downloader(arcade.gui.UIView):
         path = os.path.expanduser(self.tab_selector.value)
 
         info = self.run_yt_dlp(url)
-
+        
         os.remove("downloaded_music.mp3.info.json")
         os.remove("downloaded_music.info.json")
 
@@ -122,9 +123,18 @@ class Downloader(arcade.gui.UIView):
                 title = f"{artist} - {track_title}"
 
             try:
-                audio = EasyID3("downloaded_music.mp3")
-                audio["artist"] = artist
-                audio["title"] = track_title
+                audio = MP3("downloaded_music.mp3", ID3=ID3)
+                if audio.tags is None:
+                    audio.add_tags()
+                else:
+                    for frame_id in ("TIT2", "TPE1", "WXXX"):
+                        audio.tags.delall(frame_id)
+                audio.tags.add(TIT2(encoding=3, text=track_title))
+                audio.tags.add(TPE1(encoding=3, text=artist))
+                if info.get("creator_url"):
+                    audio.tags.add(WXXX(desc="Uploader", url=info["uploader_url"]))
+                audio.tags.add(WXXX(desc="Source", url=info["webpage_url"]))
+
                 audio.save()
             except Exception as meta_err:
                 self.yt_dl_buffer = f"ERROR: Tried to override metadata based on title, but failed: {meta_err}"

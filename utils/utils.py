@@ -1,4 +1,4 @@
-import logging, sys, traceback, os, re, platform, urllib.request, io, base64, tempfile
+import logging, sys, traceback, os, re, platform, urllib.request, io, base64, tempfile, struct
 
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3
@@ -87,27 +87,40 @@ class UIFocusTextureButton(arcade.gui.UITextureButton):
         else:
             self.resize(width=self.width / 1.1, height=self.height / 1.1)
 
-class ListItem(arcade.gui.UIBoxLayout):
-    def __init__(self, width: int, height: int, font_name: str, font_size: int, text: str, texture: arcade.Texture, padding=10):
+class MusicItem(arcade.gui.UIBoxLayout):
+    def __init__(self, metadata: dict, width: int, height: int, texture: arcade.Texture, padding=10):
         super().__init__(width=width, height=height, space_between=padding, align="top", vertical=False)
 
-        self.image = self.add(arcade.gui.UIImage(
-            texture=texture,
-            width=width * 0.1,
-            height=height
-        ))
+        if metadata:
+            self.image = self.add(arcade.gui.UIImage(
+                texture=texture,
+                width=height * 1.5,
+                height=height,
+            ))
 
         self.button = self.add(arcade.gui.UITextureButton(
-            text=text,
+            text=f"{metadata['artist']} - {metadata['title']}" if metadata else "Add Music",
             texture=button_texture,
             texture_hovered=button_hovered_texture,
             texture_pressed=button_texture,
             texture_disabled=button_texture,
             style=button_style,
-            width=width * 0.9,
+            width=width * 0.85,
             height=height,
             interaction_buttons=[arcade.MOUSE_BUTTON_LEFT, arcade.MOUSE_BUTTON_RIGHT]
         ))
+
+        if metadata:
+            self.view_metadata_button = self.add(arcade.gui.UITextureButton(
+                text="View Metadata",
+                texture=button_texture,
+                texture_hovered=button_hovered_texture,
+                texture_pressed=button_texture,
+                texture_disabled=button_texture,
+                style=button_style,
+                width=width * 0.1,
+                height=height,
+            ))
 
 def on_exception(*exc_info):
     logging.error(f"Unhandled exception:\n{''.join(traceback.format_exception(exc_info[1], limit=None))}")
@@ -171,88 +184,84 @@ def truncate_end(text: str, max_length: int) -> str:
         return text
     return text[:max_length - 3] + '...'
 
-def extract_metadata(filename):
+def extract_metadata_and_thumbnail(filename: str, thumb_resolution: tuple) -> tuple:
     artist = "Unknown"
     title = ""
+    source_url = "Unknown"
+    creator_url = "Unknown"
+    thumb_texture = None
+    sound_length = 0
+    bit_rate = 0
 
     basename = os.path.basename(filename)
-    name_only = os.path.splitext(basename)[0]
-
-    name_only = re.sub(r'\s*\[[a-zA-Z0-9\-_]{5,}\]$', '', name_only)
+    name_only = re.sub(r'\s*\[[a-zA-Z0-9\-_]{5,}\]$', '', os.path.splitext(basename)[0])
+    ext = os.path.splitext(filename)[1].lower().lstrip('.')
 
     try:
         thumb_audio = EasyID3(filename)
+        try:
+            artist = str(thumb_audio["artist"][0])
+            title = str(thumb_audio["title"][0])
+        except KeyError:
+            artist_title_match = re.search(r'^.+\s*-\s*.+$', title)
+            if artist_title_match:
+                title = title.split("- ")[1]
 
-        artist = str(thumb_audio["artist"][0])
-        title = str(thumb_audio["title"][0])
+        file_audio = File(filename)
+        if hasattr(file_audio, 'info'):
+            sound_length = round(file_audio.info.length, 2)
+            bit_rate = int((file_audio.info.bitrate or 0) / 1000)
 
-        artist_title_match = re.search(r'^.+\s*-\s*.+$', title) # check for Artist - Title titles, so Artist doesnt appear twice
+        thumb_image_data = None
+        if ext == 'mp3':
+            for tag in file_audio.values():
+                if tag.FrameID == "APIC":
+                    thumb_image_data = tag.data
+                    break
+        elif ext in ('m4a', 'aac'):
+            if 'covr' in file_audio:
+                thumb_image_data = file_audio['covr'][0]
+        elif ext == 'flac':
+            if file_audio.pictures:
+                thumb_image_data = file_audio.pictures[0].data
+        elif ext in ('ogg', 'opus'):
+            if "metadata_block_picture" in file_audio:
+                pic_data = base64.b64decode(file_audio["metadata_block_picture"][0])
+                header_len = struct.unpack(">I", pic_data[0:4])[0]
+                thumb_image_data = pic_data[4 + header_len:]
 
-        if artist_title_match:
-            title = title.split("- ")[1]
+        id3 = ID3(filename)
+        for frame in id3.getall("WXXX"):
+            if frame.desc.lower() == "creator":
+                creator_url = frame.url
+            elif frame.desc.lower() == "source":
+                source_url = frame.url
 
-        if artist != "Unknown" and title:
-            return artist, title
-    except:
-        pass
+        if thumb_image_data:
+            pil_image = Image.open(io.BytesIO(thumb_image_data)).convert("RGBA")
+            pil_image = pil_image.resize(thumb_resolution)
+            thumb_texture = arcade.Texture(pil_image)
+
+    except Exception as e:
+        logging.debug(f"[Metadata/Thumbnail Error] {filename}: {e}")
 
     if artist == "Unknown" or not title:
         match = re.search(r'^(.*?)\s+-\s+(.*?)$', name_only)
         if match:
             filename_artist, filename_title = match.groups()
-
             if artist == "Unknown":
                 artist = filename_artist
-
             if not title:
                 title = filename_title
-
-            return artist, title
 
     if not title:
         title = name_only
 
-    return artist, title
+    if thumb_texture is None:
+        from utils.preload import music_icon
+        thumb_texture = music_icon
 
-def get_audio_thumbnail_texture(audio_path: str, window_resolution: tuple) -> arcade.Texture:
-    ext = os.path.splitext(audio_path)[1].lower().lstrip('.')
-    thumb_audio = File(audio_path)
-
-    thumb_image_data = None
-
-    try:
-        if ext == 'mp3':
-            for tag in thumb_audio.values():
-                if tag.FrameID == "APIC":
-                    thumb_image_data = tag.data
-                    break
-
-        elif ext in ('m4a', 'mp4', 'aac'):
-            if 'covr' in thumb_audio:
-                thumb_image_data = thumb_audio['covr'][0]
-
-        elif ext == 'flac':
-            if thumb_audio.pictures:
-                thumb_image_data = thumb_audio.pictures[0].data
-
-        elif ext in ('ogg', 'opus'):
-            if "metadata_block_picture" in thumb_audio:
-                pic_data = base64.b64decode(thumb_audio["metadata_block_picture"][0])
-                import struct
-                header_len = struct.unpack(">I", pic_data[0:4])[0]
-                thumb_image_data = pic_data[4 + header_len:]
-
-        if thumb_image_data:
-            pil_image = Image.open(io.BytesIO(thumb_image_data)).convert("RGBA")
-            pil_image = pil_image.resize((int(window_resolution[0] / 5), int(window_resolution[1] / 8)))
-            thumb_texture = arcade.Texture(pil_image)
-            return thumb_texture
-
-    except Exception as e:
-        logging.debug(f"[Thumbnail Error] {audio_path}: {e}")
-
-    from utils.preload import music_icon
-    return music_icon
+    return sound_length, bit_rate, creator_url, source_url, artist, title, thumb_texture
 
 def adjust_volume(input_path, volume):
     try:

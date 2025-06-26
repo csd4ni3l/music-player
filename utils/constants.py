@@ -1,13 +1,13 @@
 import arcade.color
 from arcade.types import Color
-from arcade.gui.widgets.buttons import UITextureButtonStyle, UIFlatButtonStyle
+from arcade.gui.widgets.buttons import UIFlatButtonStyle
 from arcade.gui.widgets.slider import UISliderStyle
 
 menu_background_color = (17, 17, 17)
 log_dir = 'logs'
 discord_presence_id = 1368277020332523530
 
-audio_extensions = ["mp3", "m4a", "mp4", "aac", "flac", "ogg", "opus", "wav"]
+audio_extensions = ["mp3", "m4a", "aac", "flac", "ogg", "opus", "wav"]
 
 DARK_GRAY = Color(45, 45, 45)
 GRAY = Color(70, 70, 70)
