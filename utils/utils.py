@@ -302,3 +302,20 @@ def adjust_volume(input_path, volume):
     change = volume - audio.dBFS
     audio.apply_gain(change)
     audio.export(input_path, **export_args)
+
+def convert_seconds_to_date(seconds):
+    days, remainder = divmod(seconds, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    result = ""
+    if days > 0:
+        result += "{} days ".format(int(days))
+    if hours > 0:
+        result += "{} hours ".format(int(hours))
+    if minutes > 0:
+        result += "{} minutes ".format(int(minutes))
+    if seconds > 0 or not any([days, hours, minutes]):
+        result += "{} seconds".format(int(seconds))
+
+    return result.strip()

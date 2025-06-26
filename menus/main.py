@@ -3,7 +3,7 @@ import arcade, pyglet
 
 from utils.preload import *
 from utils.constants import button_style, slider_style, audio_extensions, discord_presence_id
-from utils.utils import FakePyPresence, UIFocusTextureButton, MusicItem, extract_metadata_and_thumbnail, truncate_end, adjust_volume
+from utils.utils import FakePyPresence, UIFocusTextureButton, MusicItem, extract_metadata_and_thumbnail, truncate_end, adjust_volume, convert_seconds_to_date
 
 from thefuzz import process, fuzz
 
@@ -264,7 +264,7 @@ class Main(arcade.gui.UIView):
     def open_metadata(self, file_path):
         metadata = self.file_metadata[file_path]
 
-        metadata_text = f"File path: {file_path}\nArtist: {metadata['artist']}\nTitle: {metadata['title']}\nSound length: {int(metadata['sound_length'])}\nBitrate: {metadata['bit_rate']}Kbps"
+        metadata_text = f"File path: {file_path}\nArtist: {metadata['artist']}\nTitle: {metadata['title']}\nSound length: {convert_seconds_to_date(int(metadata['sound_length']))}\nBitrate: {metadata['bit_rate']}Kbps"
 
         msgbox = arcade.gui.UIMessageBox(title=f"{metadata['artist']} - {metadata['title']} Metadata", buttons=("Uploader", "Source", "Close"), message_text=metadata_text, width=self.window.width / 2, height=self.window.height / 2)
         msgbox.on_action = lambda event, metadata=metadata: self.metadata_button_action(event.action, metadata)
