@@ -2,8 +2,10 @@ import random, asyncio, pypresence, time, copy, json, os, logging, webbrowser
 import arcade, pyglet
 
 from utils.preload import *
-from utils.constants import button_style, slider_style, audio_extensions, discord_presence_id
-from utils.utils import FakePyPresence, UIFocusTextureButton, MusicItem, extract_metadata_and_thumbnail, truncate_end, adjust_volume, convert_seconds_to_date
+from utils.constants import button_style, slider_style, audio_extensions, discord_presence_id, view_modes
+from utils.utils import FakePyPresence, UIFocusTextureButton, MusicItem, convert_seconds_to_date
+from utils.music_handling import update_last_play_statistics, extract_metadata_and_thumbnail, adjust_volume, truncate_end, convert_timestamp_to_time_ago
+from utils.file_watching import watch_directories, watch_files
 
 from thefuzz import process, fuzz
 
@@ -57,7 +59,6 @@ class Main(arcade.gui.UIView):
         self.tab_content = {}
         self.playlist_content = {}
         self.file_metadata = {}
-        self.thumbnails = {}
         self.tab_buttons = {}
         self.music_buttons = {}
 
@@ -67,6 +68,9 @@ class Main(arcade.gui.UIView):
         self.current_mode = current_mode or "files"
         self.current_playlist = None
         self.time_to_seek = None
+        self.tab_observer = None
+        self.playlist_observer = None
+        self.should_reload = False
         self.current_tab = self.tab_options[0]
         self.queue = queue if queue else []
         self.loaded_sounds = loaded_sounds if loaded_sounds else {}
@@ -117,11 +121,11 @@ class Main(arcade.gui.UIView):
 
         self.downloader_button = self.settings_box.add(UIFocusTextureButton(texture=download_icon, texture_hovered=download_icon, texture_pressed=download_icon, style=button_style))
         self.downloader_button.on_click = lambda event: self.downloader()
-
-        self.reload_button = self.settings_box.add(UIFocusTextureButton(texture=reload_icon, texture_hovered=reload_icon, texture_pressed=reload_icon, style=button_style))
-        self.reload_button.on_click = lambda event: self.reload()
-
-        mode_icon = playlist_icon if self.current_mode == "files" else files_icon
+        
+        if self.current_mode == "files":
+            mode_icon = files_icon
+        elif self.current_mode == "playlist":
+            mode_icon = playlist_icon
 
         self.mode_button = self.settings_box.add(UIFocusTextureButton(texture=mode_icon, texture_hovered=mode_icon, texture_pressed=mode_icon, style=button_style))
         self.mode_button.on_click = lambda event: self.change_mode()
@@ -178,14 +182,13 @@ class Main(arcade.gui.UIView):
 
     def update_buttons(self):
         if self.current_mode == "files":
-            self.mode_button.texture = playlist_icon
-            self.mode_button.texture_hovered = playlist_icon
-            self.mode_button.texture_pressed = playlist_icon
-
+            mode_icon = files_icon
         elif self.current_mode == "playlist":
-            self.mode_button.texture = files_icon
-            self.mode_button.texture_hovered = files_icon
-            self.mode_button.texture_pressed = files_icon
+            mode_icon = playlist_icon
+
+        self.mode_button.texture = mode_icon
+        self.mode_button.texture_hovered = mode_icon
+        self.mode_button.texture_pressed = mode_icon
 
         self.shuffle_button.texture = no_shuffle_icon if self.shuffle else shuffle_icon
         self.shuffle_button.texture_hovered = no_shuffle_icon if self.shuffle else shuffle_icon
@@ -211,7 +214,10 @@ class Main(arcade.gui.UIView):
         self.anchor.detect_focusable_widgets()
 
     def change_mode(self):
-        self.current_mode = "playlist" if self.current_mode == "files" else "files"
+        if view_modes.index(self.current_mode) == len(view_modes) - 1:
+            self.current_mode = view_modes[0]
+        else:
+            self.current_mode = view_modes[view_modes.index(self.current_mode) + 1]
 
         self.current_playlist = list(self.playlist_content.keys())[0] if self.playlist_content else None
 
@@ -219,8 +225,8 @@ class Main(arcade.gui.UIView):
         self.search_term = ""
 
         self.reload()
-
         self.load_tabs()
+        self.update_buttons()
 
     def skip_sound(self):
         if not self.current_music_player is None:
@@ -264,7 +270,15 @@ class Main(arcade.gui.UIView):
     def open_metadata(self, file_path):
         metadata = self.file_metadata[file_path]
 
-        metadata_text = f"File path: {file_path}\nArtist: {metadata['artist']}\nTitle: {metadata['title']}\nSound length: {convert_seconds_to_date(int(metadata['sound_length']))}\nBitrate: {metadata['bit_rate']}Kbps"
+        metadata_text = f'''File path: {file_path}
+File size: {metadata['file_size']}MiB
+Artist: {metadata['artist']}
+Title: {metadata['title']}
+Amount of times played: {metadata['play_count']}
+Last Played: {convert_timestamp_to_time_ago(int(metadata['last_played']))}
+Sound length: {convert_seconds_to_date(int(metadata['sound_length']))}
+Bitrate: {metadata['bitrate']}Kbps
+Sample rate: {metadata['sample_rate']}KHz'''
 
         msgbox = arcade.gui.UIMessageBox(title=f"{metadata['artist']} - {metadata['title']} Metadata", buttons=("Uploader", "Source", "Close"), message_text=metadata_text, width=self.window.width / 2, height=self.window.height / 2)
         msgbox.on_action = lambda event, metadata=metadata: self.metadata_button_action(event.action, metadata)
@@ -284,25 +298,19 @@ class Main(arcade.gui.UIView):
             if not self.search_term == "":
                 matches = process.extract(self.search_term, self.tab_content[self.current_tab], limit=5, processor=lambda text: text.lower(), scorer=fuzz.partial_token_sort_ratio)
                 self.highest_score_file = f"{self.current_tab}/{matches[0][0]}"
-                
-                for match in matches:
-                    music_filename = match[0]
-                    metadata = self.file_metadata[f"{tab}/{music_filename}"]
-                    self.music_buttons[f"{tab}/{music_filename}"] = self.music_box.add(MusicItem(metadata=metadata, texture=self.thumbnails[f"{tab}/{music_filename}"], width=self.window.width / 1.2, height=self.window.height / 11))
-                    self.music_buttons[f"{tab}/{music_filename}"].button.on_click = lambda event, music_path=f"{tab}/{music_filename}": self.music_button_click(event, music_path)
-                    self.music_buttons[f"{tab}/{music_filename}"].view_metadata_button.on_click = lambda event, music_path=f"{tab}/{music_filename}": self.open_metadata(music_path)
+                content_to_show = [match[0] for match in matches]
 
             else:
                 self.highest_score_file = ""
-
                 self.no_music_label.visible = not self.tab_content[tab]
+                content_to_show = self.tab_content[tab]
 
-                for music_filename in self.tab_content[tab]:
-                    metadata = self.file_metadata[f"{tab}/{music_filename}"]
-                    
-                    self.music_buttons[f"{tab}/{music_filename}"] = self.music_box.add(MusicItem(metadata=metadata, texture=self.thumbnails[f"{tab}/{music_filename}"], width=self.window.width / 1.2, height=self.window.height / 11))
-                    self.music_buttons[f"{tab}/{music_filename}"].button.on_click = lambda event, music_path=f"{tab}/{music_filename}": self.music_button_click(event, music_path)
-                    self.music_buttons[f"{tab}/{music_filename}"].view_metadata_button.on_click = lambda event, music_path=f"{tab}/{music_filename}": self.open_metadata(music_path)
+            for music_filename in content_to_show:
+                metadata = self.file_metadata[f"{tab}/{music_filename}"]
+                
+                self.music_buttons[f"{tab}/{music_filename}"] = self.music_box.add(MusicItem(metadata=metadata, width=self.window.width / 1.2, height=self.window.height / 11))
+                self.music_buttons[f"{tab}/{music_filename}"].button.on_click = lambda event, music_path=f"{tab}/{music_filename}": self.music_button_click(event, music_path)
+                self.music_buttons[f"{tab}/{music_filename}"].view_metadata_button.on_click = lambda event, music_path=f"{tab}/{music_filename}": self.open_metadata(music_path)
 
         elif self.current_mode == "playlist":
             self.current_playlist = tab
@@ -311,25 +319,20 @@ class Main(arcade.gui.UIView):
                 if not self.search_term == "":
                     matches = process.extract(self.search_term, self.playlist_content[tab], limit=5, processor=lambda text: text.lower(), scorer=fuzz.partial_token_sort_ratio)
                     self.highest_score_file = matches[0][0]
-                    for match in matches:
-                        music_path = match[0]
-                        metadata = self.file_metadata[music_path]
-                        self.music_buttons[music_path] = self.music_box.add(MusicItem(metadata=metadata, texture=self.thumbnails[music_path], width=self.window.width / 1.2, height=self.window.height / 11))
-                        self.music_buttons[music_path].button.on_click = lambda event, music_path=music_path: self.music_button_click(event, music_path)
-                        self.music_buttons[music_path].view_metadata_button.on_click = lambda event, music_path=music_path: self.open_metadata(music_path)
+                    content_to_show = [match[0] for match in matches]
 
                 else:
                     self.highest_score_file = ""
-
                     self.no_music_label.visible = not self.playlist_content[tab]
+                    content_to_show = self.playlist_content[tab]
 
-                    for music_path in self.playlist_content[tab]:
-                        metadata = self.file_metadata[music_path]
-                        self.music_buttons[music_path] = self.music_box.add(MusicItem(metadata=metadata, texture=self.thumbnails[music_path], width=self.window.width / 1.2, height=self.window.height / 11))
-                        self.music_buttons[music_path].button.on_click = lambda event, music_path=music_path: self.music_button_click(event, music_path)
-                        self.music_buttons[music_path].view_metadata_button.on_click = lambda event, music_path=music_path: self.open_metadata(music_filename)
+                for music_path in content_to_show:
+                    metadata = self.file_metadata[music_path]
+                    self.music_buttons[music_path] = self.music_box.add(MusicItem(metadata=metadata, width=self.window.width / 1.2, height=self.window.height / 11))
+                    self.music_buttons[music_path].button.on_click = lambda event, music_path=music_path: self.music_button_click(event, music_path)
+                    self.music_buttons[music_path].view_metadata_button.on_click = lambda event, music_path=music_path: self.open_metadata(music_path)
 
-                self.music_buttons["add_music"] = self.music_box.add(MusicItem(metadata=None, texture=music_icon, width=self.window.width / 1.2, height=self.window.height / 11))
+                self.music_buttons["add_music"] = self.music_box.add(MusicItem(metadata=None, width=self.window.width / 1.2, height=self.window.height / 11))
                 self.music_buttons["add_music"].button.on_click = lambda event: self.add_music()
 
         self.anchor.detect_focusable_widgets()
@@ -348,12 +351,11 @@ class Main(arcade.gui.UIView):
 
             self.window.show_view(Main(self.pypresence_client, self.current_mode, self.current_music_name, # temporarily fixes the issue of bad resolution after deletion with less than 2 rows
                                        self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
-
+            
     def load_content(self):
         self.tab_content.clear()
         self.playlist_content.clear()
         self.file_metadata.clear()
-        self.thumbnails.clear()
         
         for tab in self.tab_options:
             expanded_tab = os.path.expanduser(tab)
@@ -367,22 +369,32 @@ class Main(arcade.gui.UIView):
             for filename in os.listdir(expanded_tab):
                 if filename.split(".")[-1] in audio_extensions:
                     if f"{expanded_tab}/{filename}" not in self.file_metadata:
-                        sound_length, bit_rate, uploader_url, source_url, artist, title, thumbnail = extract_metadata_and_thumbnail(f"{expanded_tab}/{filename}", (int(self.window.width / 16), int(self.window.height / 9)))
-                        self.file_metadata[f"{expanded_tab}/{filename}"] = {"sound_length": sound_length, "bit_rate": bit_rate, "uploader_url": uploader_url, "source_url": source_url, "artist": artist, "title": title}
-                        self.thumbnails[f"{expanded_tab}/{filename}"] = thumbnail
+                        self.file_metadata[f"{expanded_tab}/{filename}"] = extract_metadata_and_thumbnail(f"{expanded_tab}/{filename}", (int(self.window.width / 16), int(self.window.height / 9)))
                     self.tab_content[expanded_tab].append(filename)
-        
+
+        if self.tab_observer:
+            self.tab_observer.stop()
+        self.tab_observer = watch_directories(self.tab_content.keys(), self.on_file_change)
+
+        playlist_files = []
         for playlist, content in self.settings_dict.get("playlists", {}).items():
             for file in content:
+                playlist_files.append(file)
+
                 if not os.path.exists(file) or not os.path.isfile(file):
                     content.remove(file) # also removes reference from self.settings_dict["playlists"]
                     continue
                 
                 if file not in self.file_metadata:
-                    sound_length, bit_rate, uploader_url, source_url, artist, title, thumbnail = extract_metadata_and_thumbnail(file, (int(self.window.width / 16), int(self.window.height / 9)))
-                    self.file_metadata[file] = {"sound_length": sound_length, "bit_rate": bit_rate, "uploader_url": uploader_url, "source_url": source_url, "artist": artist, "title": title}
-                    self.thumbnails[file] = thumbnail
+                    self.file_metadata[file] = extract_metadata_and_thumbnail(file, (int(self.window.width / 16), int(self.window.height / 9)))
             self.playlist_content[playlist] = content
+
+        if self.playlist_observer:
+            self.playlist_observer.stop()
+        self.playlist_observer = watch_files(playlist_files, self.on_file_change)
+
+    def on_file_change(self, event_type, path):
+        self.should_reload = True # needed because the observer runs in another thread and OpenGL is single-threaded.
 
     def load_tabs(self):
         self.tab_box.clear()
@@ -410,6 +422,10 @@ class Main(arcade.gui.UIView):
             self.current_music_player.volume = self.volume / 100
 
     def on_update(self, delta_time):
+        if self.should_reload:
+            self.should_reload = False
+            self.reload()
+
         if self.current_music_player is None or self.current_music_player.time == 0:
             if len(self.queue) > 0:
                 music_path = self.queue.pop(0)
@@ -420,11 +436,13 @@ class Main(arcade.gui.UIView):
 
                 if self.settings_dict.get("normalize_audio", True):
                     self.current_music_label.text = "Normalizing audio..."
-                    self.window.draw(delta_time)
+                    self.window.draw(delta_time) # draw before blocking
                     try:
                         adjust_volume(music_path, self.settings_dict.get("normalized_volume", -8))
                     except Exception as e:
                         logging.error(f"Couldn't normalize volume for {music_path}: {e}")
+
+                update_last_play_statistics(music_path)
 
                 if not music_name in self.loaded_sounds:
                     self.loaded_sounds[music_name] = arcade.Sound(music_path, streaming=self.settings_dict.get("music_mode", "Stream") == "Stream")
@@ -438,7 +456,7 @@ class Main(arcade.gui.UIView):
                 self.current_length = self.loaded_sounds[music_name].get_length()
 
                 self.current_music_name = music_name
-                self.current_music_thumbnail_image.texture = self.thumbnails[music_path]
+                self.current_music_thumbnail_image.texture = self.file_metadata[music_path]["thumbnail"]
                 self.current_music_label.text = truncate_end(music_name, int(self.window.width / 30))
                 self.time_label.text = "00:00"
                 self.progressbar.max_value = self.current_length

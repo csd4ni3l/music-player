@@ -1,12 +1,4 @@
-import logging, sys, traceback, os, re, platform, urllib.request, io, base64, tempfile, struct
-
-from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3
-from mutagen import File
-
-from pydub import AudioSegment
-
-from PIL import Image
+import logging, sys, traceback
 
 from utils.constants import menu_background_color, button_style
 from utils.preload import button_texture, button_hovered_texture
@@ -88,12 +80,12 @@ class UIFocusTextureButton(arcade.gui.UITextureButton):
             self.resize(width=self.width / 1.1, height=self.height / 1.1)
 
 class MusicItem(arcade.gui.UIBoxLayout):
-    def __init__(self, metadata: dict, width: int, height: int, texture: arcade.Texture, padding=10):
+    def __init__(self, metadata: dict, width: int, height: int, padding=10):
         super().__init__(width=width, height=height, space_between=padding, align="top", vertical=False)
 
         if metadata:
             self.image = self.add(arcade.gui.UIImage(
-                texture=texture,
+                texture=metadata["thumbnail"],
                 width=height * 1.5,
                 height=height,
             ))
@@ -141,167 +133,6 @@ def get_closest_resolution():
             key=lambda res: abs(res[0] - target_width) + abs(res[1] - target_height)
         )
     return closest_resolution
-
-def get_yt_dlp_binary_path():
-    system = platform.system()
-
-    if system == "Windows":
-        binary = "yt-dlp.exe"
-    elif system == "Darwin":
-        binary = "yt-dlp_macos"
-    elif system == "Linux":
-        binary = "yt-dlp_linux"
-
-    return os.path.join("bin", binary)
-
-def ensure_yt_dlp():
-    path = get_yt_dlp_binary_path()
-
-    if not os.path.exists("bin"):
-        os.makedirs("bin")
-
-    if not os.path.exists(path):
-        system = platform.system()
-
-        if system == "Windows":
-            url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
-        elif system == "Darwin":
-            url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos"
-        elif system == "Linux":
-            url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux"
-        else:
-            raise RuntimeError("Unsupported OS")
-
-        urllib.request.urlretrieve(url, path)
-        os.chmod(path, 0o755)
-
-    return path
-
-def truncate_end(text: str, max_length: int) -> str:
-    if len(text) <= max_length:
-        return text
-    if max_length <= 3:
-        return text
-    return text[:max_length - 3] + '...'
-
-def extract_metadata_and_thumbnail(filename: str, thumb_resolution: tuple) -> tuple:
-    artist = "Unknown"
-    title = ""
-    source_url = "Unknown"
-    creator_url = "Unknown"
-    thumb_texture = None
-    sound_length = 0
-    bit_rate = 0
-
-    basename = os.path.basename(filename)
-    name_only = re.sub(r'\s*\[[a-zA-Z0-9\-_]{5,}\]$', '', os.path.splitext(basename)[0])
-    ext = os.path.splitext(filename)[1].lower().lstrip('.')
-
-    try:
-        thumb_audio = EasyID3(filename)
-        try:
-            artist = str(thumb_audio["artist"][0])
-            title = str(thumb_audio["title"][0])
-        except KeyError:
-            artist_title_match = re.search(r'^.+\s*-\s*.+$', title)
-            if artist_title_match:
-                title = title.split("- ")[1]
-
-        file_audio = File(filename)
-        if hasattr(file_audio, 'info'):
-            sound_length = round(file_audio.info.length, 2)
-            bit_rate = int((file_audio.info.bitrate or 0) / 1000)
-
-        thumb_image_data = None
-        if ext == 'mp3':
-            for tag in file_audio.values():
-                if tag.FrameID == "APIC":
-                    thumb_image_data = tag.data
-                    break
-        elif ext in ('m4a', 'aac'):
-            if 'covr' in file_audio:
-                thumb_image_data = file_audio['covr'][0]
-        elif ext == 'flac':
-            if file_audio.pictures:
-                thumb_image_data = file_audio.pictures[0].data
-        elif ext in ('ogg', 'opus'):
-            if "metadata_block_picture" in file_audio:
-                pic_data = base64.b64decode(file_audio["metadata_block_picture"][0])
-                header_len = struct.unpack(">I", pic_data[0:4])[0]
-                thumb_image_data = pic_data[4 + header_len:]
-
-        id3 = ID3(filename)
-        for frame in id3.getall("WXXX"):
-            if frame.desc.lower() == "creator":
-                creator_url = frame.url
-            elif frame.desc.lower() == "source":
-                source_url = frame.url
-
-        if thumb_image_data:
-            pil_image = Image.open(io.BytesIO(thumb_image_data)).convert("RGBA")
-            pil_image = pil_image.resize(thumb_resolution)
-            thumb_texture = arcade.Texture(pil_image)
-
-    except Exception as e:
-        logging.debug(f"[Metadata/Thumbnail Error] {filename}: {e}")
-
-    if artist == "Unknown" or not title:
-        match = re.search(r'^(.*?)\s+-\s+(.*?)$', name_only)
-        if match:
-            filename_artist, filename_title = match.groups()
-            if artist == "Unknown":
-                artist = filename_artist
-            if not title:
-                title = filename_title
-
-    if not title:
-        title = name_only
-
-    if thumb_texture is None:
-        from utils.preload import music_icon
-        thumb_texture = music_icon
-
-    return sound_length, bit_rate, creator_url, source_url, artist, title, thumb_texture
-
-def adjust_volume(input_path, volume):
-    try:
-        easy_tags = EasyID3(input_path)
-        tags = dict(easy_tags)
-        tags = {k: v[0] if isinstance(v, list) else v for k, v in tags.items()}
-    except Exception as e:
-        tags = {}
-
-    try:
-        id3 = ID3(input_path)
-        apic_frames = [f for f in id3.values() if f.FrameID == "APIC"]
-        cover_path = None
-        if apic_frames:
-            apic = apic_frames[0]
-            ext = ".jpg" if apic.mime == "image/jpeg" else ".png"
-            temp_cover = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
-            temp_cover.write(apic.data)
-            temp_cover.close()
-            cover_path = temp_cover.name
-        else:
-            cover_path = None
-    except Exception as e:
-        cover_path = None
-
-    audio = AudioSegment.from_file(input_path)
-    
-    if int(audio.dBFS) == volume:
-        return
-    
-    export_args = {
-        "format": "mp3",
-        "tags": tags
-    }
-    if cover_path:
-        export_args["cover"] = cover_path
-
-    change = volume - audio.dBFS
-    audio.apply_gain(change)
-    audio.export(input_path, **export_args)
 
 def convert_seconds_to_date(seconds):
     days, remainder = divmod(seconds, 86400)

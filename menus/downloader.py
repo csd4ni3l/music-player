@@ -1,11 +1,11 @@
 from mutagen.id3 import ID3, TIT2, TPE1, WXXX
 from mutagen.mp3 import MP3
 
-import arcade, arcade.gui, os, json, threading, subprocess, traceback
+import arcade, arcade.gui, os, json, threading, subprocess, urllib.request, platform
 
 from arcade.gui.experimental.focus import UIFocusGroup
 
-from utils.utils import ensure_yt_dlp, adjust_volume
+from utils.music_handling import adjust_volume
 from utils.constants import button_style
 from utils.preload import button_texture, button_hovered_texture
 
@@ -65,7 +65,7 @@ class Downloader(arcade.gui.UIView):
             self.status_label.update_font(font_color=arcade.color.LIGHT_GREEN)
 
     def run_yt_dlp(self, url):
-        yt_dlp_path = ensure_yt_dlp()
+        yt_dlp_path = self.ensure_yt_dlp()
 
         command = [
             yt_dlp_path, f"{url}",
@@ -160,6 +160,34 @@ class Downloader(arcade.gui.UIView):
             return
 
         self.yt_dl_buffer = f"Successfully downloaded {title} to {path}"
+
+    def ensure_yt_dlp():
+        system = platform.system()
+
+        if system == "Windows":
+            path = os.path.join("bin", "yt-dlp.exe")
+        elif system == "Darwin":
+            path = os.path.join("bin", "yt-dlp_macos")
+        elif system == "Linux":
+            path = os.path.join("bin", "yt-dlp_linux")
+            
+        if not os.path.exists("bin"):
+            os.makedirs("bin")
+
+        if not os.path.exists(path):
+            if system == "Windows":
+                url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
+            elif system == "Darwin":
+                url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos"
+            elif system == "Linux":
+                url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux"
+            else:
+                raise RuntimeError("Unsupported OS")
+
+            urllib.request.urlretrieve(url, path)
+            os.chmod(path, 0o755)
+
+        return path
 
     def main_exit(self):
         from menus.main import Main

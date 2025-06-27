@@ -14,9 +14,9 @@ shuffle_icon = arcade.load_texture("assets/graphics/shuffle.png")
 no_shuffle_icon = arcade.load_texture("assets/graphics/no_shuffle.png")
 
 settings_icon = arcade.load_texture("assets/graphics/settings.png")
-reload_icon = arcade.load_texture("assets/graphics/reload.png")
 download_icon = arcade.load_texture("assets/graphics/download.png")
 plus_icon = arcade.load_texture("assets/graphics/plus.png")
+
 playlist_icon = arcade.load_texture("assets/graphics/playlist.png")
 files_icon = arcade.load_texture("assets/graphics/files.png")
 

@@ -9,6 +9,8 @@ discord_presence_id = 1368277020332523530
 
 audio_extensions = ["mp3", "m4a", "aac", "flac", "ogg", "opus", "wav"]
 
+view_modes = ["files", "playlist"]
+
 DARK_GRAY = Color(45, 45, 45)
 GRAY = Color(70, 70, 70)
 LIGHT_GRAY = Color(150, 150, 150)
