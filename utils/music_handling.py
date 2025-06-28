@@ -27,6 +27,7 @@ def extract_metadata_and_thumbnail(file_path: str, thumb_resolution: tuple) -> t
     sample_rate = 0
     last_played = 0
     play_count = 0
+    upload_year = 0
 
     basename = os.path.basename(file_path)
     name_only = os.path.splitext(basename)[0]
@@ -37,6 +38,7 @@ def extract_metadata_and_thumbnail(file_path: str, thumb_resolution: tuple) -> t
         try:
             artist = str(thumb_audio["artist"][0])
             title = str(thumb_audio["title"][0])
+            upload_year = int(thumb_audio["date"][0])
         except KeyError:
             artist_title_match = re.search(r'^.+\s*-\s*.+$', title)
             if artist_title_match:
@@ -111,6 +113,7 @@ def extract_metadata_and_thumbnail(file_path: str, thumb_resolution: tuple) -> t
         "file_size": file_size,
         "last_played": last_played,
         "play_count": play_count,
+        "upload_year": upload_year,
         "sample_rate": sample_rate,
         "uploader_url": uploader_url,
         "source_url": source_url,
@@ -120,6 +123,12 @@ def extract_metadata_and_thumbnail(file_path: str, thumb_resolution: tuple) -> t
     }
 
 def adjust_volume(input_path, volume):
+    audio = AudioSegment.from_file(input_path)
+    change = volume - audio.dBFS
+
+    if abs(change) < 1.0:
+        return
+
     try:
         easy_tags = EasyID3(input_path)
         tags = dict(easy_tags)
@@ -143,11 +152,8 @@ def adjust_volume(input_path, volume):
     except Exception as e:
         cover_path = None
 
-    audio = AudioSegment.from_file(input_path)
-    
-    if int(audio.dBFS) == volume:
-        return
-    
+    audio = audio.apply_gain(change)
+
     export_args = {
         "format": "mp3",
         "tags": tags
@@ -155,8 +161,6 @@ def adjust_volume(input_path, volume):
     if cover_path:
         export_args["cover"] = cover_path
 
-    change = volume - audio.dBFS
-    audio.apply_gain(change)
     audio.export(input_path, **export_args)
 
 def update_last_play_statistics(filepath):

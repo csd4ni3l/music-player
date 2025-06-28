@@ -267,13 +267,14 @@ class Main(arcade.gui.UIView):
         if action != "Close":
             webbrowser.open(metadata["uploader_url"] if action == "Uploader" else metadata["source_url"])
 
-    def open_metadata(self, file_path):
+    def view_metadata(self, file_path):
         metadata = self.file_metadata[file_path]
 
         metadata_text = f'''File path: {file_path}
 File size: {metadata['file_size']}MiB
 Artist: {metadata['artist']}
 Title: {metadata['title']}
+Upload Year: {metadata['upload_year'] or 'Unknown'}
 Amount of times played: {metadata['play_count']}
 Last Played: {convert_timestamp_to_time_ago(int(metadata['last_played']))}
 Sound length: {convert_seconds_to_date(int(metadata['sound_length']))}
@@ -310,7 +311,7 @@ Sample rate: {metadata['sample_rate']}KHz'''
                 
                 self.music_buttons[f"{tab}/{music_filename}"] = self.music_box.add(MusicItem(metadata=metadata, width=self.window.width / 1.2, height=self.window.height / 11))
                 self.music_buttons[f"{tab}/{music_filename}"].button.on_click = lambda event, music_path=f"{tab}/{music_filename}": self.music_button_click(event, music_path)
-                self.music_buttons[f"{tab}/{music_filename}"].view_metadata_button.on_click = lambda event, music_path=f"{tab}/{music_filename}": self.open_metadata(music_path)
+                self.music_buttons[f"{tab}/{music_filename}"].view_metadata_button.on_click = lambda event, music_path=f"{tab}/{music_filename}": self.view_metadata(music_path)
 
         elif self.current_mode == "playlist":
             self.current_playlist = tab
@@ -330,7 +331,7 @@ Sample rate: {metadata['sample_rate']}KHz'''
                     metadata = self.file_metadata[music_path]
                     self.music_buttons[music_path] = self.music_box.add(MusicItem(metadata=metadata, width=self.window.width / 1.2, height=self.window.height / 11))
                     self.music_buttons[music_path].button.on_click = lambda event, music_path=music_path: self.music_button_click(event, music_path)
-                    self.music_buttons[music_path].view_metadata_button.on_click = lambda event, music_path=music_path: self.open_metadata(music_path)
+                    self.music_buttons[music_path].view_metadata_button.on_click = lambda event, music_path=music_path: self.view_metadata(music_path)
 
                 self.music_buttons["add_music"] = self.music_box.add(MusicItem(metadata=None, width=self.window.width / 1.2, height=self.window.height / 11))
                 self.music_buttons["add_music"].button.on_click = lambda event: self.add_music()
@@ -397,8 +398,6 @@ Sample rate: {metadata['sample_rate']}KHz'''
         self.should_reload = True # needed because the observer runs in another thread and OpenGL is single-threaded.
 
     def load_tabs(self):
-        self.tab_box.clear()
-
         if self.current_mode == "files":
             for tab in self.tab_options:
                 self.tab_buttons[os.path.expanduser(tab)] = self.tab_box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text=os.path.basename(os.path.normpath(os.path.expanduser(tab))), style=button_style, width=self.window.width / 10, height=self.window.height / 15))
