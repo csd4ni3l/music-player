@@ -263,27 +263,9 @@ class Main(arcade.gui.UIView):
             self.shuffle = not self.shuffle
             self.update_buttons()
 
-    def metadata_button_action(self, action, metadata):
-        if action != "Close":
-            webbrowser.open(metadata["uploader_url"] if action == "Uploader" else metadata["source_url"])
-
     def view_metadata(self, file_path):
-        metadata = self.file_metadata[file_path]
-
-        metadata_text = f'''File path: {file_path}
-File size: {metadata['file_size']}MiB
-Artist: {metadata['artist']}
-Title: {metadata['title']}
-Upload Year: {metadata['upload_year'] or 'Unknown'}
-Amount of times played: {metadata['play_count']}
-Last Played: {convert_timestamp_to_time_ago(int(metadata['last_played']))}
-Sound length: {convert_seconds_to_date(int(metadata['sound_length']))}
-Bitrate: {metadata['bitrate']}Kbps
-Sample rate: {metadata['sample_rate']}KHz'''
-
-        msgbox = arcade.gui.UIMessageBox(title=f"{metadata['artist']} - {metadata['title']} Metadata", buttons=("Uploader", "Source", "Close"), message_text=metadata_text, width=self.window.width / 2, height=self.window.height / 2)
-        msgbox.on_action = lambda event, metadata=metadata: self.metadata_button_action(event.action, metadata)
-        self.anchor.add(msgbox, anchor_x="center", anchor_y="center")
+        from menus.metadata_viewer import MetadataViewer
+        self.window.show_view(MetadataViewer(self.pypresence_client, "music", self.file_metadata[file_path], file_path, self.current_mode, self.current_music_name, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
 
     def show_content(self, tab):
         for music_button in self.music_buttons.values():
@@ -309,7 +291,7 @@ Sample rate: {metadata['sample_rate']}KHz'''
             for music_filename in content_to_show:
                 metadata = self.file_metadata[f"{tab}/{music_filename}"]
                 
-                self.music_buttons[f"{tab}/{music_filename}"] = self.music_box.add(MusicItem(metadata=metadata, width=self.window.width / 1.2, height=self.window.height / 11))
+                self.music_buttons[f"{tab}/{music_filename}"] = self.music_box.add(MusicItem(metadata=metadata, width=self.window.width / 1.2, height=self.window.height / 22))
                 self.music_buttons[f"{tab}/{music_filename}"].button.on_click = lambda event, music_path=f"{tab}/{music_filename}": self.music_button_click(event, music_path)
                 self.music_buttons[f"{tab}/{music_filename}"].view_metadata_button.on_click = lambda event, music_path=f"{tab}/{music_filename}": self.view_metadata(music_path)
 
@@ -329,11 +311,11 @@ Sample rate: {metadata['sample_rate']}KHz'''
 
                 for music_path in content_to_show:
                     metadata = self.file_metadata[music_path]
-                    self.music_buttons[music_path] = self.music_box.add(MusicItem(metadata=metadata, width=self.window.width / 1.2, height=self.window.height / 11))
+                    self.music_buttons[music_path] = self.music_box.add(MusicItem(metadata=metadata, width=self.window.width / 1.2, height=self.window.height / 22))
                     self.music_buttons[music_path].button.on_click = lambda event, music_path=music_path: self.music_button_click(event, music_path)
                     self.music_buttons[music_path].view_metadata_button.on_click = lambda event, music_path=music_path: self.view_metadata(music_path)
 
-                self.music_buttons["add_music"] = self.music_box.add(MusicItem(metadata=None, width=self.window.width / 1.2, height=self.window.height / 11))
+                self.music_buttons["add_music"] = self.music_box.add(MusicItem(metadata=None, width=self.window.width / 1.2, height=self.window.height / 22))
                 self.music_buttons["add_music"].button.on_click = lambda event: self.add_music()
 
         self.anchor.detect_focusable_widgets()

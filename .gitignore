@@ -181,3 +181,4 @@ logs/
 logs
 settings.json
 bin/
+metadata_cache.json

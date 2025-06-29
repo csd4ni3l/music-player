@@ -2,7 +2,6 @@ import arcade, arcade.gui, os, json
 
 from utils.constants import button_style, audio_extensions
 from utils.preload import button_texture, button_hovered_texture
-from utils.utils import UIFocusTextureButton
 from menus.file_manager import FileManager
 from arcade.gui.experimental.focus import UIFocusGroup
 
@@ -42,10 +41,10 @@ class AddMusic(arcade.gui.UIView):
         self.add_music_input = self.box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text=f'Select File ({self.music_file_selected})', style=button_style, font_name="Roboto", font_size=32, width=self.window.width / 2, height=self.window.height / 10))
         self.add_music_input.on_click = lambda event: self.select_file()
 
-        self.add_music_button = self.box.add(UIFocusTextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='Add Music', style=button_style, width=self.window.width / 2, height=self.window.height / 10))
+        self.add_music_button = self.box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='Add Music', style=button_style, width=self.window.width / 2, height=self.window.height / 10))
         self.add_music_button.on_click = lambda event: self.add_music()
 
-        self.back_button = self.anchor.add(UIFocusTextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='<--', style=button_style, width=100, height=50), anchor_x="left", anchor_y="top", align_x=5, align_y=-5)
+        self.back_button = self.anchor.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='<--', style=button_style, width=100, height=50), anchor_x="left", anchor_y="top", align_x=5, align_y=-5)
         self.back_button.on_click = lambda event: self.main_exit()
 
         self.anchor.detect_focusable_widgets()
