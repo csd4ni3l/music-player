@@ -58,8 +58,8 @@ class MetadataViewer(arcade.gui.UIView):
             albums = ', '.join(list(self.online_metadata[2].keys()))
             name = f"{self.file_metadata['artist']} - {self.file_metadata['title']} Metadata"
             metadata_text = f'''File path: {self.file_path}
-File Artist: {self.file_metadata['artist']}
-MusicBrainz Artists: {', '.join([artist for artist in self.online_metadata[1]])}
+File Artist(s): {self.file_metadata['artist']}
+MusicBrainz Artist(s): {', '.join([artist for artist in self.online_metadata[1]])}
 Title: {self.file_metadata['title']}
 MusicBrainz ID: {self.online_metadata[0]['musicbrainz_id']}
 ISRC(s): {', '.join(self.online_metadata[0]['isrc-list']) if self.online_metadata[0]['isrc-list'] else "None"}

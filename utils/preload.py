@@ -9,9 +9,10 @@ resume_icon = arcade.load_texture("assets/graphics/resume.png")
 stop_icon = arcade.load_texture("assets/graphics/stop.png")
 loop_icon = arcade.load_texture("assets/graphics/loop.png")
 no_loop_icon = arcade.load_texture("assets/graphics/no_loop.png")
-
 shuffle_icon = arcade.load_texture("assets/graphics/shuffle.png")
 no_shuffle_icon = arcade.load_texture("assets/graphics/no_shuffle.png")
+forward_icon = arcade.load_texture("assets/graphics/forward.png")
+backwards_icon = arcade.load_texture("assets/graphics/backwards.png")
 
 settings_icon = arcade.load_texture("assets/graphics/settings.png")
 download_icon = arcade.load_texture("assets/graphics/download.png")
@@ -21,3 +22,4 @@ playlist_icon = arcade.load_texture("assets/graphics/playlist.png")
 files_icon = arcade.load_texture("assets/graphics/files.png")
 
 music_icon = arcade.load_texture("assets/graphics/music.png")
+volume_icon = arcade.load_texture("assets/graphics/volume.png")

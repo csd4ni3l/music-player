@@ -161,7 +161,7 @@ class Downloader(arcade.gui.UIView):
 
         self.yt_dl_buffer = f"Successfully downloaded {title} to {path}"
 
-    def ensure_yt_dlp():
+    def ensure_yt_dlp(self):
         system = platform.system()
 
         if system == "Windows":
