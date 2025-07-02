@@ -8,16 +8,10 @@ from menus.file_manager import FileManager
 from arcade.gui.experimental.focus import UIFocusGroup
 
 class NewTab(arcade.gui.UIView):
-    def __init__(self, pypresence_client, current_mode, current_music_name, current_length, current_music_player, queue, loaded_sounds, shuffle, directory_selected=None):
+    def __init__(self, pypresence_client, *args, directory_selected=None):
         super().__init__()
 
-        self.current_mode = current_mode
-        self.current_music_name = current_music_name
-        self.current_length = current_length
-        self.current_music_player = current_music_player
-        self.queue = queue
-        self.loaded_sounds = loaded_sounds
-        self.shuffle = shuffle
+        self.args = args
         self.directory_selected = directory_selected
 
         with open("settings.json", "r", encoding="utf-8") as file:
@@ -25,6 +19,8 @@ class NewTab(arcade.gui.UIView):
 
         self.tab_options = self.settings_dict.get("tab_options", [os.path.join("~", "Music"), os.path.join("~", "Downloads")])
         self.playlists = self.settings_dict.get("playlists", {})
+
+        self.current_mode = self.args[0]
 
         self.pypresence_client = pypresence_client
         self.pypresence_client.update(state="Adding new tab", start=self.pypresence_client.start_time)
@@ -43,6 +39,7 @@ class NewTab(arcade.gui.UIView):
             
             self.new_tab_button = self.box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='Add new tab', style=button_style, width=self.window.width / 2, height=self.window.height / 10))
             self.new_tab_button.on_click = lambda event: self.add_tab()
+
         elif self.current_mode == "playlist":
             self.new_tab_label = self.box.add(arcade.gui.UILabel(text="New Playlist Name:", font_name="Roboto", font_size=32))
             
@@ -57,7 +54,7 @@ class NewTab(arcade.gui.UIView):
         self.anchor.detect_focusable_widgets()
 
     def select_directory(self):
-        self.window.show_view(FileManager(os.path.expanduser("~"), [], "directory", self.pypresence_client, self.current_mode, self.current_music_name, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
+        self.window.show_view(FileManager(os.path.expanduser("~"), [], "directory", self.pypresence_client, *self.args))
 
     def add_tab(self):
         if self.current_mode == "files":
@@ -84,4 +81,4 @@ class NewTab(arcade.gui.UIView):
 
     def main_exit(self):
         from menus.main import Main
-        self.window.show_view(Main(self.pypresence_client, self.current_mode, self.current_music_name, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
+        self.window.show_view(Main(self.pypresence_client, *self.args))

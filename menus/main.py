@@ -439,6 +439,10 @@ class Main(arcade.gui.UIView):
         self.should_reload = True # needed because the observer runs in another thread and OpenGL is single-threaded.
 
     def load_tabs(self):
+        for button in self.tab_buttons.values():
+            self.tab_box.remove(button)
+        self.tab_buttons.clear()
+
         if self.current_mode == "files":
             for tab in self.tab_options:
                 self.tab_buttons[os.path.expanduser(tab)] = self.tab_box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text=os.path.basename(os.path.normpath(os.path.expanduser(tab))), style=button_style, width=self.window.width / 10, height=self.window.height / 15))

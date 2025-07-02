@@ -6,16 +6,10 @@ from menus.file_manager import FileManager
 from arcade.gui.experimental.focus import UIFocusGroup
 
 class AddMusic(arcade.gui.UIView):
-    def __init__(self, pypresence_client, current_mode, current_music_name, current_length, current_music_player, queue, loaded_sounds, shuffle, music_file_selected=None):
+    def __init__(self, pypresence_client, *args, music_file_selected=None):
         super().__init__()
 
-        self.current_mode = current_mode
-        self.current_music_name = current_music_name
-        self.current_length = current_length
-        self.current_music_player = current_music_player
-        self.queue = queue
-        self.loaded_sounds = loaded_sounds
-        self.shuffle = shuffle
+        self.args = args
         self.music_file_selected = music_file_selected
 
         with open("settings.json", "r", encoding="utf-8") as file:
@@ -50,7 +44,7 @@ class AddMusic(arcade.gui.UIView):
         self.anchor.detect_focusable_widgets()
 
     def select_file(self):
-        self.window.show_view(FileManager(os.path.expanduser("~"), [f".{extension}" for extension in audio_extensions], "file", self.pypresence_client, self.current_mode, self.current_music_name, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
+        self.window.show_view(FileManager(os.path.expanduser("~"), [f".{extension}" for extension in audio_extensions], "file", self.pypresence_client, *self.args))
 
     def add_music(self):
         music_path = self.music_file_selected
@@ -73,4 +67,4 @@ class AddMusic(arcade.gui.UIView):
 
     def main_exit(self):
         from menus.main import Main
-        self.window.show_view(Main(self.pypresence_client, self.current_mode, self.current_music_name, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
+        self.window.show_view(Main(self.pypresence_client, *self.args))

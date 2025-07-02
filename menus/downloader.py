@@ -10,16 +10,10 @@ from utils.constants import button_style
 from utils.preload import button_texture, button_hovered_texture
 
 class Downloader(arcade.gui.UIView):
-    def __init__(self, pypresence_client, current_mode, current_music_name, current_length, current_music_player, queue, loaded_sounds, shuffle):
+    def __init__(self, pypresence_client, *args):
         super().__init__()
 
-        self.current_mode = current_mode
-        self.current_music_name = current_music_name
-        self.current_length = current_length
-        self.current_music_player = current_music_player
-        self.queue = queue
-        self.loaded_sounds = loaded_sounds
-        self.shuffle = shuffle
+        self.args = args
 
         self.pypresence_client = pypresence_client
         self.pypresence_client.update(state="Downloading music", start=self.pypresence_client.start_time)
@@ -191,4 +185,4 @@ class Downloader(arcade.gui.UIView):
 
     def main_exit(self):
         from menus.main import Main
-        self.window.show_view(Main(self.pypresence_client, self.current_mode, self.current_music_name, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
+        self.window.show_view(Main(self.pypresence_client, *self.args))
