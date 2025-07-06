@@ -86,17 +86,23 @@ def get_albums_metadata(release_list):
 
         if release.get("status") == "Official":
             release_id = release["id"]
-            if (release_id in metadata_cache["is_release_album_by_id"] and metadata_cache["is_release_album_by_id"][release_id]) or is_release_valid(release_id): # Only do it if the album is official, skipping many API calls
-                metadata_cache["is_release_album_by_id"][release_id] = True
-                album_metadata[release.get("title", "")] = {
-                    "musicbrainz_id": release.get("id") if release else "Unknown",
-                    "album_name": release.get("title") if release else "Unknown",
-                    "album_date": release.get("date") if release else "Unknown",
-                    "album_country": (get_country(release.get("country", "WZ")) or "Worldwide") if release else "Unknown",
-                }
+            if release_id in metadata_cache["is_release_album_by_id"]:
+                if not metadata_cache["is_release_album_by_id"][release_id]:
+                    continue
             else:
-                metadata_cache["is_release_album_by_id"][release_id] = False
-    
+                if not is_release_valid(release_id):
+                    metadata_cache["is_release_album_by_id"][release_id] = False
+                    continue
+            
+            metadata_cache["is_release_album_by_id"][release_id] = True
+            
+            album_metadata[release.get("title", "")] = {
+                "musicbrainz_id": release.get("id") if release else "Unknown",
+                "album_name": release.get("title") if release else "Unknown",
+                "album_date": release.get("date") if release else "Unknown",
+                "album_country": (get_country(release.get("country", "WZ")) or "Worldwide") if release else "Unknown",
+            }
+
     with open("metadata_cache.json", "w") as file:
         file.write(json.dumps(metadata_cache))
 
@@ -111,7 +117,8 @@ def get_music_metadata(artist, title):
             "query_results": {},
             "recording_by_id": {},
             "artist_by_id": {},
-            "is_release_album_by_id": {}
+            "is_release_album_by_id": {},
+            "lyrics_by_id": {}
         }
 
     music_api.set_useragent(MUSICBRAINZ_PROJECT_NAME, MUSCIBRAINZ_VERSION, MUSICBRAINZ_CONTACT)
@@ -155,6 +162,14 @@ def get_music_metadata(artist, title):
             "release-list": [{"id": release["id"], "title": release["title"], "status": release.get("status"), "date": release.get("date"), "country": release.get("country", "WZ")} for release in detailed["release-list"]] if "release-list" in detailed else []
         }
 
+    metadata_cache["lyrics_by_id"] = metadata_cache.get("lyrics_by_id", {})
+
+    if recording_id in metadata_cache["lyrics_by_id"]:
+        lyrics = metadata_cache["lyrics_by_id"][recording_id]
+    else:
+        lyrics = get_lyrics(artist, title)
+        metadata_cache["lyrics_by_id"][recording_id] = lyrics
+
     with open("metadata_cache.json", "w") as file:
         file.write(json.dumps(metadata_cache))
 
@@ -169,8 +184,7 @@ def get_music_metadata(artist, title):
         "tags": [tag["name"] for tag in detailed.get("tag-list", [])]
     }
 
-    return music_metadata, artist_metadata, album_metadata
-
+    return music_metadata, artist_metadata, album_metadata, lyrics
 
 def get_lyrics(artist, title):
     if artist:
@@ -188,11 +202,12 @@ def get_lyrics(artist, title):
         if result.get("plainLyrics"):
             return result["plainLyrics"]
         
-    return "Unknown"
+    if artist: # if there was an artist, it might have been misleading. For example, on Youtube, the uploader might not be the artist. We retry with only title.
+        return get_lyrics(None, title)
 
 def get_album_cover_art(musicbrainz_album_id):
     try:
-        cover_art_bytes = music_api.get_image_front(musicbrainz_album_id)
+        cover_art_bytes = music_api.get_image_front(musicbrainz_album_id, 250)
     except music_api.ResponseError:
         return None
 

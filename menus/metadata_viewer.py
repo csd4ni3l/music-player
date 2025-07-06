@@ -10,11 +10,11 @@ from utils.utils import convert_seconds_to_date
 from utils.music_handling import convert_timestamp_to_time_ago
 
 class MetadataViewer(arcade.gui.UIView):
-    def __init__(self, pypresence_client, metadata_type="music", metadata_dict=None, file_path=None, *args):
+    def __init__(self, pypresence_client, metadata_type="music", metadata=None, file_path=None, *args):
         super().__init__()
         self.metadata_type = metadata_type
         if metadata_type == "music":
-            self.file_metadata = metadata_dict
+            self.file_metadata = metadata
             self.artist = self.file_metadata["artist"]
             self.file_path = file_path
             if self.artist == "Unknown":
@@ -24,9 +24,13 @@ class MetadataViewer(arcade.gui.UIView):
             self.online_metadata = get_music_metadata(self.artist, self.title)
 
         elif metadata_type == "artist":
-            self.artist_metadata = metadata_dict
+            self.artist_metadata = metadata
         elif metadata_type == "album":
-            self.album_metadata = metadata_dict
+            self.album_metadata = metadata
+        elif metadata_type:
+            self.artist = metadata["artist"]
+            self.title = metadata["title"]
+            self.music_lyrics = metadata["lyrics"]
 
         self.pypresence_client = pypresence_client
         self.args = args
@@ -75,18 +79,20 @@ Sound length: {convert_seconds_to_date(int(self.file_metadata['sound_length']))}
 Bitrate: {self.file_metadata['bitrate']}Kbps
 Sample rate: {self.file_metadata['sample_rate']}KHz
 '''
-            self.more_metadata_buttons.append(self.more_metadata_box.add(arcade.gui.UITextureButton(text=f"Artist Metadata", style=button_style, texture=button_texture, texture_hovered=button_hovered_texture, width=self.window.width / 4.25, height=self.window.height / 15)))
+            self.more_metadata_buttons.append(self.more_metadata_box.add(arcade.gui.UITextureButton(text="Artist Metadata", style=button_style, texture=button_texture, texture_hovered=button_hovered_texture, width=self.window.width / 5.5, height=self.window.height / 15)))
             self.more_metadata_buttons[-1].on_click = lambda event: self.window.show_view(MetadataViewer(self.pypresence_client, "artist", self.online_metadata[1], None, *self.args))
 
-            self.more_metadata_buttons.append(self.more_metadata_box.add(arcade.gui.UITextureButton(text=f"Album Metadata", style=button_style, texture=button_texture, texture_hovered=button_hovered_texture, width=self.window.width / 4.25, height=self.window.height / 15)))
+            self.more_metadata_buttons.append(self.more_metadata_box.add(arcade.gui.UITextureButton(text="Album Metadata", style=button_style, texture=button_texture, texture_hovered=button_hovered_texture, width=self.window.width / 5.5, height=self.window.height / 15)))
             self.more_metadata_buttons[-1].on_click = lambda event: self.window.show_view(MetadataViewer(self.pypresence_client, "album", self.online_metadata[2], None, *self.args))
 
-            self.more_metadata_buttons.append(self.more_metadata_box.add(arcade.gui.UITextureButton(text=f"Open Uploader URL", style=button_style, texture=button_texture, texture_hovered=button_hovered_texture, width=self.window.width / 4.25, height=self.window.height / 15)))
+            self.more_metadata_buttons.append(self.more_metadata_box.add(arcade.gui.UITextureButton(text="Lyrics", style=button_style, texture=button_texture, texture_hovered=button_hovered_texture, width=self.window.width / 5.5, height=self.window.height / 15)))
+            self.more_metadata_buttons[-1].on_click = lambda event: self.window.show_view(MetadataViewer(self.pypresence_client, "lyrics", {"artist": self.artist, "title": self.title, "lyrics": self.online_metadata[3]}, None, *self.args))
+
+            self.more_metadata_buttons.append(self.more_metadata_box.add(arcade.gui.UITextureButton(text="Open Uploader URL", style=button_style, texture=button_texture, texture_hovered=button_hovered_texture, width=self.window.width / 5.5, height=self.window.height / 15)))
             self.more_metadata_buttons[-1].on_click = lambda event: webbrowser.open(self.file_metadata["uploader_url"]) if not self.file_metadata.get("uploader_url", "Unknown") == "Unknown" else None
 
-            self.more_metadata_buttons.append(self.more_metadata_box.add(arcade.gui.UITextureButton(text=f"Open Source URL", style=button_style, texture=button_texture, texture_hovered=button_hovered_texture, width=self.window.width / 4.25, height=self.window.height / 15)))
+            self.more_metadata_buttons.append(self.more_metadata_box.add(arcade.gui.UITextureButton(text="Open Source URL", style=button_style, texture=button_texture, texture_hovered=button_hovered_texture, width=self.window.width / 5.5, height=self.window.height / 15)))
             self.more_metadata_buttons[-1].on_click = lambda event: webbrowser.open(self.file_metadata["source_url"]) if not self.file_metadata.get("source_url", "Unknown") == "Unknown" else None
-
 
             metadata_box = self.box.add(arcade.gui.UIBoxLayout(space_between=10, align='left'))
 
@@ -139,6 +145,12 @@ Album Country: {album_dict['album_country']}
                     full_box.add(arcade.gui.UIImage(texture=cover_art, width=self.window.width / 10, height=self.window.height / 6))
                 else:
                     full_box.add(arcade.gui.UILabel(text="No cover found.", font_size=18, font_name="Roboto"))
+
+        elif self.metadata_type == "lyrics":
+            name = f"{self.artist} - {self.title} Lyrics"
+            metadata_box = self.box.add(arcade.gui.UIBoxLayout(space_between=10, align='left'))
+            self.metadata_labels.append(metadata_box.add(arcade.gui.UILabel(text=name, font_size=20, font_name="Roboto", multiline=True)))
+            self.metadata_labels.append(metadata_box.add(arcade.gui.UILabel(text=self.music_lyrics, font_size=18, font_name="Roboto", multiline=True)))
 
     def main_exit(self):
         from menus.main import Main

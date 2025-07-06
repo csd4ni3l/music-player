@@ -9,16 +9,10 @@ from utils.preload import button_texture, button_hovered_texture
 from arcade.gui.experimental.focus import UIFocusGroup
 
 class Settings(arcade.gui.UIView):
-    def __init__(self, pypresence_client, current_mode, current_music_name, current_length, current_music_player, queue, loaded_sounds, shuffle):
+    def __init__(self, pypresence_client, *args):
         super().__init__()
 
-        self.current_mode = current_mode
-        self.current_music_name = current_music_name
-        self.current_length = current_length
-        self.current_music_player = current_music_player
-        self.queue = queue
-        self.loaded_sounds = loaded_sounds
-        self.shuffle = shuffle
+        self.args = args
 
         with open("settings.json", "r", encoding="utf-8") as file:
             self.settings_dict = json.load(file)
@@ -293,7 +287,7 @@ class Settings(arcade.gui.UIView):
 
     def main_exit(self):
         from menus.main import Main
-        self.window.show_view(Main(self.pypresence_client, self.current_mode, self.current_music_name, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
+        self.window.show_view(Main(self.pypresence_client, *self.args))
 
     def ui_cleanup(self):
         self.ui.clear()

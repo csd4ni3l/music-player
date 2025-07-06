@@ -1,9 +1,11 @@
 import logging, sys, traceback
 
-from utils.constants import menu_background_color, button_style
-from utils.preload import button_texture, button_hovered_texture
+from utils.constants import menu_background_color
+from utils.preload import resume_icon, music_icon
 
 import pyglet, arcade, arcade.gui
+
+from arcade.gui.experimental.scroll_area import UIScrollArea
 
 def dump_platform():
     import platform
@@ -59,7 +61,6 @@ class ErrorView(arcade.gui.UIView):
         msgbox.on_action = lambda event: self.exit()
         self.add_widget(msgbox)
 
-
 class FakePyPresence():
     def __init__(self):
         ...
@@ -79,40 +80,109 @@ class UIFocusTextureButton(arcade.gui.UITextureButton):
         else:
             self.resize(width=self.width / 1.1, height=self.height / 1.1)
 
+# Thanks to Eruvanos for the MouseAwareScrollArea and the UIMouseOutOfAreaEvent
+class UIMouseOutOfAreaEvent(arcade.gui.UIEvent):
+    """Indicates that the mouse is outside a specific area."""
+    pass
+
+class MouseAwareScrollArea(UIScrollArea):
+    """Keep track of mouse position, None if outside of area."""
+    mouse_inside = False
+    def on_event(self, event: arcade.gui.UIEvent):
+        if isinstance(event, arcade.gui.UIMouseMovementEvent):
+            if self.rect.point_in_rect(event.pos):
+                if not self.mouse_inside:
+                    self.mouse_inside = True
+            else:
+                if self.mouse_inside:
+                    self.mouse_inside = False
+                    self.dispatch_ui_event(UIMouseOutOfAreaEvent(self))
+
+        return super().on_event(event)
+    
 class MusicItem(arcade.gui.UIBoxLayout):
     def __init__(self, metadata: dict, width: int, height: int, padding=10):
-        super().__init__(width=width, height=height, space_between=padding, align="top", vertical=False)
+        super().__init__(width=width, height=height, space_between=padding, align="top")
 
+        self.metadata = metadata
         if metadata:
-            self.image = self.add(arcade.gui.UIImage(
+            self.button = self.add(arcade.gui.UITextureButton(
                 texture=metadata["thumbnail"],
-                width=height * 1.5,
-                height=height,
+                texture_hovered=metadata["thumbnail"],
+                width=width / 1.25,
+                height=height * 0.5,
+                interaction_buttons=[arcade.MOUSE_BUTTON_LEFT, arcade.MOUSE_BUTTON_RIGHT]
             ))
 
-        self.button = self.add(arcade.gui.UITextureButton(
-            text=f"{metadata['artist']} - {metadata['title']}" if metadata else "Add Music",
-            texture=button_texture,
-            texture_hovered=button_hovered_texture,
-            texture_pressed=button_texture,
-            texture_disabled=button_texture,
-            style=button_style,
-            width=width * 0.85,
-            height=height,
-            interaction_buttons=[arcade.MOUSE_BUTTON_LEFT, arcade.MOUSE_BUTTON_RIGHT]
-        ))
-
-        if metadata:
-            self.view_metadata_button = self.add(arcade.gui.UITextureButton(
-                text="View Metadata",
-                texture=button_texture,
-                texture_hovered=button_hovered_texture,
-                texture_pressed=button_texture,
-                texture_disabled=button_texture,
-                style=button_style,
-                width=width * 0.1,
-                height=height,
+            self.title_label = self.add(arcade.gui.UILabel(
+                text=metadata["title"],
+                font_name="Roboto",
+                font_size=14,
+                width=width,
+                height=height * 0.5,
+                multiline=True
             ))
+
+            self.artist_label = self.add(arcade.gui.UILabel(
+                text=metadata["artist"],
+                font_name="Roboto",
+                font_size=12,
+                width=width,
+                height=height * 0.5,
+                multiline=True,
+                text_color=arcade.color.GRAY
+            ))
+
+            self.play_button = self.add(arcade.gui.UITextureButton(
+                texture=resume_icon,
+                texture_hovered=resume_icon,
+                width=width / 10,
+                height=height / 5,
+                interaction_buttons=[arcade.MOUSE_BUTTON_LEFT, arcade.MOUSE_BUTTON_RIGHT]
+            ))
+            self.play_button.visible = False
+
+        else:
+            self.button = self.add(arcade.gui.UITextureButton(
+                texture=music_icon,
+                texture_hovered=music_icon,
+                width=width / 1.25,
+                height=height * 0.5,
+            ))
+
+            self.add_music_label = self.add(arcade.gui.UILabel(
+                text="Add Music",
+                font_name="Roboto",
+                font_size=14,
+                width=width,
+                height=height * 0.5,
+                multiline=True
+            ))
+
+    def on_event(self, event: arcade.gui.UIEvent):
+        if self.metadata:
+            if isinstance(event, UIMouseOutOfAreaEvent):
+                # not hovering
+                self.with_background(color=arcade.color.TRANSPARENT_BLACK)
+                self.play_button.visible = False
+                self.trigger_full_render()
+
+            elif isinstance(event, arcade.gui.UIMouseMovementEvent):
+                if self.rect.point_in_rect(event.pos):
+                    # hovering
+                    self.with_background(color=arcade.color.DARK_GRAY)
+                    self.play_button.visible = True
+                    self.trigger_full_render()
+                else:
+                    # not hovering
+                    self.with_background(color=arcade.color.TRANSPARENT_BLACK)
+                    self.play_button.visible = False
+                    self.trigger_full_render()
+
+            elif isinstance(event, arcade.gui.UIMousePressEvent) and self.rect.point_in_rect(event.pos):
+                self.button.on_click(event)
+
+        return super().on_event(event)
 
 def on_exception(*exc_info):
     logging.error(f"Unhandled exception:\n{''.join(traceback.format_exception(exc_info[1], limit=None))}")

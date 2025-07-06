@@ -20,7 +20,7 @@ class NewTab(arcade.gui.UIView):
         self.tab_options = self.settings_dict.get("tab_options", [os.path.join("~", "Music"), os.path.join("~", "Downloads")])
         self.playlists = self.settings_dict.get("playlists", {})
 
-        self.current_mode = self.args[0]
+        self.tab_type = "Directory"
 
         self.pypresence_client = pypresence_client
         self.pypresence_client.update(state="Adding new tab", start=self.pypresence_client.start_time)
@@ -28,25 +28,32 @@ class NewTab(arcade.gui.UIView):
     def on_show_view(self):
         super().on_show_view()
 
+        self.create_ui()
+
+    def change_tab_type(self, tab_type):
+        self.tab_type = tab_type
+
+        self.ui.clear()
+        self.create_ui()
+
+    def create_ui(self):
         self.anchor = self.add_widget(UIFocusGroup(size_hint=(1, 1)))
         self.box = self.anchor.add(arcade.gui.UIBoxLayout(space_between=10), anchor_x="center", anchor_y="center")
 
-        if self.current_mode == "files":
-            self.new_tab_label = self.box.add(arcade.gui.UILabel(text="New Tab Path:", font_name="Roboto", font_size=32))
-            
-            self.add_music_input = self.box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text=f'Select Directory ({self.directory_selected})', style=button_style, font_name="Roboto", font_size=32, width=self.window.width / 2, height=self.window.height / 10))
-            self.add_music_input.on_click = lambda event: self.select_directory()
-            
-            self.new_tab_button = self.box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='Add new tab', style=button_style, width=self.window.width / 2, height=self.window.height / 10))
-            self.new_tab_button.on_click = lambda event: self.add_tab()
+        self.new_tab_type_label = self.box.add(arcade.gui.UILabel(text="Tab Type:", font_name="Roboto", font_size=32))
+        self.tab_type_dropdown = self.box.add(arcade.gui.UIDropdown(options=["Directory", "Playlist"], default=self.tab_type, primary_style=button_style, dropdown_style=button_style, active_style=button_style, width=self.window.width / 3, height=self.window.height / 15))
+        self.tab_type_dropdown.on_change = lambda e: self.change_tab_type(e.new_value)
 
-        elif self.current_mode == "playlist":
-            self.new_tab_label = self.box.add(arcade.gui.UILabel(text="New Playlist Name:", font_name="Roboto", font_size=32))
-            
-            self.new_tab_input = self.box.add(arcade.gui.UIInputText(font_name="Roboto", font_size=32, width=self.window.width / 2, height=self.window.height / 10))
-            
-            self.new_tab_button = self.box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='Add new Playlist', style=button_style, width=self.window.width / 2, height=self.window.height / 10))
-            self.new_tab_button.on_click = lambda event: self.add_tab()
+        if self.tab_type == "Playlist":
+            self.new_tab_label = self.box.add(arcade.gui.UILabel(text="New Tab Name:", font_name="Roboto", font_size=32))    
+            self.new_tab_input = self.box.add(arcade.gui.UIInputText(font_name="Roboto", font_size=32, width=self.window.width / 3, height=self.window.height / 15))
+        else:
+            self.new_tab_label = self.box.add(arcade.gui.UILabel(text="New Tab Path:", font_name="Roboto", font_size=32))    
+            self.add_music_input = self.box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text=f'Select Directory ({self.directory_selected})', style=button_style, font_name="Roboto", font_size=32, width=self.window.width / 3, height=self.window.height / 15))
+            self.add_music_input.on_click = lambda event: self.select_directory()
+
+        self.new_tab_button = self.box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='Add new Tab', style=button_style, width=self.window.width / 3, height=self.window.height / 15))
+        self.new_tab_button.on_click = lambda event: self.add_tab()
 
         self.back_button = self.anchor.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='<--', style=button_style, width=100, height=50), anchor_x="left", anchor_y="top", align_x=5, align_y=-5)
         self.back_button.on_click = lambda event: self.main_exit()
@@ -57,7 +64,7 @@ class NewTab(arcade.gui.UIView):
         self.window.show_view(FileManager(os.path.expanduser("~"), [], "directory", self.pypresence_client, *self.args))
 
     def add_tab(self):
-        if self.current_mode == "files":
+        if self.tab_type == "Directory":
             tab_path = self.directory_selected
 
             if not tab_path:
@@ -72,7 +79,7 @@ class NewTab(arcade.gui.UIView):
             self.tab_options.append(tab_path)
             self.settings_dict["tab_options"] = self.tab_options
 
-        elif self.current_mode == "playlist":
+        elif self.tab_type == "Playlist":
             self.playlists[self.new_tab_input.text] = []
             self.settings_dict["playlists"] = self.playlists
 
