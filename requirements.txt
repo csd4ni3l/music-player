@@ -6,6 +6,10 @@ attrs==25.3.0
     # via pytiled-parser
 cffi==1.17.1
     # via pymunk
+iso3166==2.1.1
+    # via musicplayer (pyproject.toml)
+musicbrainzngs==0.7.1
+    # via musicplayer (pyproject.toml)
 mutagen==1.47.0
     # via musicplayer (pyproject.toml)
 pillow==11.0.0
@@ -26,7 +30,7 @@ rapidfuzz==3.13.0
     # via thefuzz
 thefuzz==0.22.1
     # via musicplayer (pyproject.toml)
-typing-extensions==4.14.0
+typing-extensions==4.14.1
     # via pytiled-parser
 watchdog==6.0.0
     # via musicplayer (pyproject.toml)
