@@ -3,7 +3,7 @@ import arcade, pyglet
 
 from utils.preload import *
 from utils.constants import button_style, slider_style, audio_extensions, discord_presence_id
-from utils.utils import FakePyPresence, UIFocusTextureButton, MusicItem, MouseAwareScrollArea
+from utils.utils import FakePyPresence, UIFocusTextureButton, Card, MouseAwareScrollArea, get_wordwrapped_text
 from utils.music_handling import update_last_play_statistics, extract_metadata_and_thumbnail, adjust_volume, truncate_end
 from utils.file_watching import watch_directories, watch_files
 
@@ -123,7 +123,7 @@ class Main(arcade.gui.UIView):
         self.scrollbar.size_hint = (0.02, 1)
         self.scroll_box.add(self.scrollbar)
 
-        self.music_grid = arcade.gui.UIGridLayout(horizontal_spacing=10, vertical_spacing=10, row_count=99, column_count=7)
+        self.music_grid = arcade.gui.UIGridLayout(horizontal_spacing=10, vertical_spacing=10, row_count=99, column_count=8)
         self.scroll_area.add(self.music_grid)
 
         # Controls
@@ -179,7 +179,10 @@ class Main(arcade.gui.UIView):
         self.volume_slider.on_change = self.on_volume_slider_change
 
         self.tools_box = self.anchor.add(arcade.gui.UIBoxLayout(space_between=15, vertical=False), anchor_x="right", anchor_y="bottom", align_x=-15, align_y=15)
-        
+
+        self.global_search_button = self.tools_box.add(UIFocusTextureButton(texture=global_search_icon, style=button_style))
+        self.global_search_button.on_click = lambda event: self.global_search()
+
         self.metadata_button = self.tools_box.add(UIFocusTextureButton(texture=metadata_icon, style=button_style))
         self.metadata_button.on_click = lambda event: self.view_metadata(self.current_music_path) if self.current_music_path else None
 
@@ -291,7 +294,7 @@ class Main(arcade.gui.UIView):
 
     def view_metadata(self, file_path):
         from menus.metadata_viewer import MetadataViewer
-        self.window.show_view(MetadataViewer(self.pypresence_client, "music", self.file_metadata[file_path], file_path, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
+        self.window.show_view(MetadataViewer(self.pypresence_client, "file", self.file_metadata[file_path], file_path, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
 
     def show_content(self, tab, content_type):
         for music_button in self.music_buttons.values():
@@ -309,8 +312,12 @@ class Main(arcade.gui.UIView):
 
         if not self.search_term == "":
             matches = process.extract(self.search_term, original_content, limit=5, processor=lambda text: text.lower(), scorer=fuzz.partial_token_sort_ratio)
-            self.highest_score_file = f"{self.current_tab}/{matches[0][0]}"
-            content_to_show = [match[0] for match in matches]
+            if matches:
+                self.highest_score_file = f"{self.current_tab}/{matches[0][0]}"
+                content_to_show = [match[0] for match in matches]
+            else:
+                self.highest_score_file = ""
+                self.content_to_show = []
 
         else:
             self.highest_score_file = ""
@@ -321,8 +328,8 @@ class Main(arcade.gui.UIView):
         row, col = 0, 0
 
         for n, music_filename in enumerate(content_to_show):
-            row = n // 7
-            col = n % 7
+            row = n // 8
+            col = n % 8
 
             if self.current_mode == "files":
                 music_path = f"{tab}/{music_filename}"
@@ -331,17 +338,17 @@ class Main(arcade.gui.UIView):
 
             metadata = self.file_metadata[music_path]
             
-            self.music_buttons[music_path] = self.music_grid.add(MusicItem(metadata=metadata, width=self.window.width / 8, height=self.window.height / 5), row=row, column=col)
+            self.music_buttons[music_path] = self.music_grid.add(Card(metadata["thumbnail"], get_wordwrapped_text(metadata["title"]), get_wordwrapped_text(metadata["artist"]), width=self.window.width / 9, height=self.window.width / 9), row=row, column=col)
             self.music_buttons[music_path].button.on_click = lambda event, music_path=music_path: self.music_button_click(event, music_path)
 
-        row = (n + 1) // 7
-        col = (n + 1) % 7
+        row = (n + 1) // 8
+        col = (n + 1) % 8
 
         self.music_grid.row_count = row + 1
         self.music_grid._update_size_hints()
 
         if self.current_mode == "playlist":
-            self.music_buttons["add_music"] = self.music_grid.add(MusicItem(metadata=None, width=self.window.width / 8, height=self.window.height / 5), row=row, column=col)
+            self.music_buttons["add_music"] = self.music_grid.add(Card(music_icon, "Add Music", None, width=self.window.width / 9, height=self.window.width / 9), row=row, column=col)
             self.music_buttons["add_music"].button.on_click = lambda event: self.add_music()
 
         self.anchor.detect_focusable_widgets()
@@ -358,8 +365,7 @@ class Main(arcade.gui.UIView):
                 with open("settings.json", "w") as file:
                     file.write(json.dumps(self.settings_dict, indent=4))
 
-            self.window.show_view(Main(self.pypresence_client, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, # temporarily fixes the issue of bad resolution after deletion with less than 2 rows
-                                       self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
+            self.window.show_view(Main(self.pypresence_client, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
             
     def load_content(self):
         self.tab_content.clear()
@@ -530,6 +536,12 @@ class Main(arcade.gui.UIView):
             self.show_content(os.path.expanduser(self.current_tab), "files")
         elif self.current_mode == "playlist":
             self.show_content(self.current_tab, "playlist")
+
+    def global_search(self):
+        from menus.global_search import GlobalSearch
+        arcade.unschedule(self.update_presence)
+        self.ui.clear()
+        self.window.show_view(GlobalSearch(self.pypresence_client, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
 
     def settings(self):
         from menus.settings import Settings

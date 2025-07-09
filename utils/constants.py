@@ -9,6 +9,8 @@ discord_presence_id = 1368277020332523530
 audio_extensions = ["mp3", "m4a", "aac", "flac", "ogg", "opus", "wav"]
 view_modes = ["files", "playlist"]
 
+COVER_CACHE_DIR = "cover_cache"
+
 MUSICBRAINZ_PROJECT_NAME = "csd4ni3l/music-player"
 MUSCIBRAINZ_VERSION = "git"
 MUSICBRAINZ_CONTACT = "csd4ni3l@proton.me"

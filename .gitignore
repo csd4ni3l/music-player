@@ -182,3 +182,4 @@ logs
 settings.json
 bin/
 metadata_cache.json
+cover_cache/

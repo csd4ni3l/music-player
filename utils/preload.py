@@ -15,7 +15,10 @@ forward_icon = arcade.load_texture("assets/graphics/forward.png")
 backwards_icon = arcade.load_texture("assets/graphics/backwards.png")
 volume_icon = arcade.load_texture("assets/graphics/volume.png")
 
+person_icon = arcade.load_texture("assets/graphics/person.png")
+music_icon = arcade.load_texture("assets/graphics/music.png")
+
+global_search_icon = arcade.load_texture("assets/graphics/global_search.png")
 settings_icon = arcade.load_texture("assets/graphics/settings.png")
 download_icon = arcade.load_texture("assets/graphics/download.png")
 metadata_icon = arcade.load_texture("assets/graphics/metadata.png")
-music_icon = arcade.load_texture("assets/graphics/music.png")

@@ -1,9 +1,6 @@
-import logging, sys, traceback
+import logging, sys, traceback, pyglet, arcade, arcade.gui, textwrap
 
 from utils.constants import menu_background_color
-from utils.preload import resume_icon, music_icon
-
-import pyglet, arcade, arcade.gui
 
 from arcade.gui.experimental.scroll_area import UIScrollArea
 
@@ -100,22 +97,21 @@ class MouseAwareScrollArea(UIScrollArea):
 
         return super().on_event(event)
     
-class MusicItem(arcade.gui.UIBoxLayout):
-    def __init__(self, metadata: dict, width: int, height: int, padding=10):
+class Card(arcade.gui.UIBoxLayout):
+    def __init__(self, thumbnail, line_1: str, line_2: str, width: int, height: int, padding=10):
         super().__init__(width=width, height=height, space_between=padding, align="top")
 
-        self.metadata = metadata
-        if metadata:
-            self.button = self.add(arcade.gui.UITextureButton(
-                texture=metadata["thumbnail"],
-                texture_hovered=metadata["thumbnail"],
-                width=width / 1.25,
-                height=height * 0.5,
-                interaction_buttons=[arcade.MOUSE_BUTTON_LEFT, arcade.MOUSE_BUTTON_RIGHT]
-            ))
+        self.button = self.add(arcade.gui.UITextureButton(
+            texture=thumbnail,
+            texture_hovered=thumbnail,
+            width=width / 2.5,
+            height=height / 2.5,
+            interaction_buttons=[arcade.MOUSE_BUTTON_LEFT, arcade.MOUSE_BUTTON_RIGHT]
+        ))
 
-            self.title_label = self.add(arcade.gui.UILabel(
-                text=metadata["title"],
+        if line_1:
+            self.line_1_label = self.add(arcade.gui.UILabel(
+                text=line_1,
                 font_name="Roboto",
                 font_size=14,
                 width=width,
@@ -123,8 +119,9 @@ class MusicItem(arcade.gui.UIBoxLayout):
                 multiline=True
             ))
 
-            self.artist_label = self.add(arcade.gui.UILabel(
-                text=metadata["artist"],
+        if line_2:
+            self.line_2_label = self.add(arcade.gui.UILabel(
+                text=line_2,
                 font_name="Roboto",
                 font_size=12,
                 width=width,
@@ -133,54 +130,24 @@ class MusicItem(arcade.gui.UIBoxLayout):
                 text_color=arcade.color.GRAY
             ))
 
-            self.play_button = self.add(arcade.gui.UITextureButton(
-                texture=resume_icon,
-                texture_hovered=resume_icon,
-                width=width / 10,
-                height=height / 5,
-                interaction_buttons=[arcade.MOUSE_BUTTON_LEFT, arcade.MOUSE_BUTTON_RIGHT]
-            ))
-            self.play_button.visible = False
-
-        else:
-            self.button = self.add(arcade.gui.UITextureButton(
-                texture=music_icon,
-                texture_hovered=music_icon,
-                width=width / 1.25,
-                height=height * 0.5,
-            ))
-
-            self.add_music_label = self.add(arcade.gui.UILabel(
-                text="Add Music",
-                font_name="Roboto",
-                font_size=14,
-                width=width,
-                height=height * 0.5,
-                multiline=True
-            ))
-
     def on_event(self, event: arcade.gui.UIEvent):
-        if self.metadata:
-            if isinstance(event, UIMouseOutOfAreaEvent):
+        if isinstance(event, UIMouseOutOfAreaEvent):
+            # not hovering
+            self.with_background(color=arcade.color.TRANSPARENT_BLACK)
+            self.trigger_full_render()
+
+        elif isinstance(event, arcade.gui.UIMouseMovementEvent):
+            if self.rect.point_in_rect(event.pos):
+                # hovering
+                self.with_background(color=arcade.color.DARK_GRAY)
+                self.trigger_full_render()
+            else:
                 # not hovering
                 self.with_background(color=arcade.color.TRANSPARENT_BLACK)
-                self.play_button.visible = False
                 self.trigger_full_render()
 
-            elif isinstance(event, arcade.gui.UIMouseMovementEvent):
-                if self.rect.point_in_rect(event.pos):
-                    # hovering
-                    self.with_background(color=arcade.color.DARK_GRAY)
-                    self.play_button.visible = True
-                    self.trigger_full_render()
-                else:
-                    # not hovering
-                    self.with_background(color=arcade.color.TRANSPARENT_BLACK)
-                    self.play_button.visible = False
-                    self.trigger_full_render()
-
-            elif isinstance(event, arcade.gui.UIMousePressEvent) and self.rect.point_in_rect(event.pos):
-                self.button.on_click(event)
+        elif isinstance(event, arcade.gui.UIMousePressEvent) and self.rect.point_in_rect(event.pos):
+            self.button.on_click(event)
 
         return super().on_event(event)
 
@@ -220,3 +187,13 @@ def convert_seconds_to_date(seconds):
         result += "{} seconds".format(int(seconds))
 
     return result.strip()
+
+def get_wordwrapped_text(text, width=18):
+    if len(text) < width:
+        output_text = text.center(width)
+    elif len(text) == width:
+        output_text = text
+    else:
+        output_text = '\n'.join(textwrap.wrap(text, width=width))
+
+    return output_text
