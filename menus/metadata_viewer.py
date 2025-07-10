@@ -1,26 +1,54 @@
-import arcade, arcade.gui, webbrowser
+import arcade, arcade.gui, webbrowser, os
 
 from arcade.gui.experimental.focus import UIFocusGroup
 from arcade.gui.experimental.scroll_area import UIScrollArea, UIScrollBar
 
-from utils.online_metadata import get_music_metadata, download_albums_cover_art
+from utils.musicbrainz_metadata import get_music_metadata
+from utils.cover_art import download_albums_cover_art
 from utils.constants import button_style
 from utils.preload import button_texture, button_hovered_texture
 from utils.utils import convert_seconds_to_date
-from utils.music_handling import convert_timestamp_to_time_ago, truncate_end
+from utils.music_handling import convert_timestamp_to_time_ago, truncate_end, add_metadata_to_file
+from utils.acoustid_metadata import get_recording_id_from_acoustic, get_fpcalc_path, download_fpcalc
 
 class MetadataViewer(arcade.gui.UIView):
     def __init__(self, pypresence_client, metadata_type="file", metadata=None, file_path=None, *args):
         super().__init__()
+        
         self.metadata_type = metadata_type
+        self.pypresence_client = pypresence_client
+        self.args = args
+        self.more_metadata_buttons = []
+        self.metadata_labels = []
+        self.msgbox = None
+
         if metadata_type == "file":
             self.file_metadata = metadata
             self.file_path = file_path
 
             self.artist = self.file_metadata["artist"] if not self.file_metadata["artist"] == "Unknown" else None
             self.title = self.file_metadata["title"]
+            if metadata.get("confirm_download") is None: 
+                if not os.path.exists(get_fpcalc_path()):
+                    self.msgbox = self.add_widget(arcade.gui.UIMessageBox(width=self.window.width / 2, height=self.window.height / 2, title="Third-party fpcalc download", message_text="We need to download fpcalc from AcoustID to recognize the song for you for better results.\nIf you say no, we will use a searching algorithm instead which might give wrong results.\nEven if fpcalc is downloaded, it might not find the music since its a community-based project.\nIf so, we will fallback to the searching algorithm.\nDo you want to continue?", buttons=("Yes", "No")))
+                    self.msgbox.on_action = lambda event: self.window.show_view(MetadataViewer(pypresence_client, metadata_type, metadata | {"confirm_download": event.action == "Yes"}, file_path, *args))
+                    return
+                else:
+                    self.acoustid_id, musicbrainz_id = get_recording_id_from_acoustic(self.file_path)
+            else:
+                if metadata["confirm_download"]:
+                    download_fpcalc()
+                    self.acoustid_id, musicbrainz_id = get_recording_id_from_acoustic(self.file_path)
 
-            self.music_metadata, self.artist_metadata, self.album_metadata, self.lyrics_metadata = get_music_metadata(self.artist, self.title)
+                else:
+                    self.acoustid_id = None
+
+            if self.acoustid_id and musicbrainz_id:
+                self.music_metadata, self.artist_metadata, self.album_metadata, self.lyrics_metadata = get_music_metadata(musicbrainz_id=musicbrainz_id)
+                return
+            
+            self.music_metadata, self.artist_metadata, self.album_metadata, self.lyrics_metadata = get_music_metadata(artist=self.artist, title=self.title)
+            
         elif metadata_type == "music":
             self.artist = metadata["artist"]
             self.title = metadata["title"]
@@ -31,13 +59,14 @@ class MetadataViewer(arcade.gui.UIView):
         elif metadata_type == "album":
             self.album_metadata = metadata
 
-        self.pypresence_client = pypresence_client
-        self.args = args
-        self.more_metadata_buttons = []
-        self.metadata_labels = []
-
     def on_show_view(self):
         super().on_show_view()
+
+        if self.msgbox:
+            return
+        
+        if self.metadata_type == "file":
+            add_metadata_to_file(self.file_path, [artist['musicbrainz_id'] for artist in self.artist_metadata.values()], self.artist, self.title, self.lyrics_metadata[1], self.music_metadata["isrc-list"], self.acoustid_id)
 
         self.anchor = self.add_widget(UIFocusGroup(size_hint=(1, 1)))
         self.back_button = self.anchor.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='<--', style=button_style, width=100, height=50), anchor_x="left", anchor_y="top", align_x=5, align_y=-5)
@@ -98,7 +127,7 @@ Sample rate: {self.file_metadata['sample_rate']}KHz'''
             else:
                 metadata_text = musicbrainz_metadata_text
 
-            metadata_text += f"\n\nLyrics:\n{self.lyrics_metadata}"
+            metadata_text += f"\n\nLyrics:\n{self.lyrics_metadata[0]}"
 
             self.more_metadata_buttons.append(self.more_metadata_box.add(arcade.gui.UITextureButton(text="Artist Metadata", style=button_style, texture=button_texture, texture_hovered=button_hovered_texture, width=self.window.width / 4.5 if self.metadata_type == "file" else self.window.width / 2.5, height=self.window.height / 15)))
             self.more_metadata_buttons[-1].on_click = lambda event: self.show_artist_metadata()

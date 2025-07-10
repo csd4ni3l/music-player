@@ -6,6 +6,7 @@ from utils.constants import button_style, slider_style, audio_extensions, discor
 from utils.utils import FakePyPresence, UIFocusTextureButton, Card, MouseAwareScrollArea, get_wordwrapped_text
 from utils.music_handling import update_last_play_statistics, extract_metadata_and_thumbnail, adjust_volume, truncate_end
 from utils.file_watching import watch_directories, watch_files
+from utils.lyrics_metadata import get_lyrics, get_closest_time, parse_synchronized_lyrics
 
 from thefuzz import process, fuzz
 
@@ -15,7 +16,7 @@ from arcade.gui.experimental.focus import UIFocusGroup
 class Main(arcade.gui.UIView):
     def __init__(self, pypresence_client: None | FakePyPresence | pypresence.Presence=None, current_tab: str | None=None, current_mode: str | None=None, current_music_artist: str | None=None,
                 current_music_title: str | None=None, current_music_path: str | None=None, current_length: int | None=None,
-                current_music_player: pyglet.media.Player | None=None, queue: list | None=None, loaded_sounds: dict | None=None, shuffle: bool=False):
+                current_music_player: pyglet.media.Player | None=None, current_synchronized_lyrics: str | None=None, queue: list | None=None, loaded_sounds: dict | None=None, shuffle: bool=False):
         
         super().__init__()
         self.pypresence_client = pypresence_client
@@ -61,15 +62,18 @@ class Main(arcade.gui.UIView):
         self.file_metadata = {}
         self.tab_buttons = {}
         self.music_buttons = {}
-        self.queue = []
+        self.queue = queue or []
 
         self.current_music_artist = current_music_artist
         self.current_music_title = current_music_title
         self.current_music_player = current_music_player
         self.current_music_path = current_music_path
         self.current_length = current_length if current_length else 0
+        self.current_synchronized_lyrics = current_synchronized_lyrics if current_synchronized_lyrics else None
         self.shuffle = shuffle
         self.volume = self.settings_dict.get("default_volume", 100)
+
+        self.lyrics_times, self.parsed_lyrics = parse_synchronized_lyrics(self.current_synchronized_lyrics) if self.current_synchronized_lyrics else (None, None)
 
         self.current_mode = current_mode if current_mode else "files"
         self.current_tab = current_tab if current_tab else self.tab_options[0]
@@ -112,10 +116,10 @@ class Main(arcade.gui.UIView):
         if self.current_mode == "playlist" and not self.current_tab:
             self.current_tab = list(self.playlist_content.keys())[0] if self.playlist_content else None
 
-        # Scrollable Sounds
+        # Scrollable Sounds and Lyrics
         self.scroll_box = self.content_box.add(arcade.gui.UIBoxLayout(size_hint=(1, 0.90), space_between=15, vertical=False))
 
-        self.scroll_area = MouseAwareScrollArea(size_hint=(1, 1)) # center on screen
+        self.scroll_area = MouseAwareScrollArea(size_hint=(0.8, 1)) # center on screen
         self.scroll_area.scroll_speed = -50
         self.scroll_box.add(self.scroll_area)
 
@@ -123,8 +127,16 @@ class Main(arcade.gui.UIView):
         self.scrollbar.size_hint = (0.02, 1)
         self.scroll_box.add(self.scrollbar)
 
-        self.music_grid = arcade.gui.UIGridLayout(horizontal_spacing=10, vertical_spacing=10, row_count=99, column_count=8)
+        self.music_grid = arcade.gui.UIGridLayout(horizontal_spacing=10, vertical_spacing=10, row_count=99, column_count=6)
         self.scroll_area.add(self.music_grid)
+
+        self.lyrics_box = self.scroll_box.add(arcade.gui.UIBoxLayout(space_between=5, size_hint=(0.25, 1), align="left"))
+
+        self.current_lyrics_label = arcade.gui.UILabel(size_hint=(0.2, 0.05), width=self.window.width * 0.2, multiline=True, font_size=16, font_name="Roboto", text_color=arcade.color.WHITE, text=self.current_synchronized_lyrics if self.current_synchronized_lyrics else "Play a song to get lyrics.")
+        self.lyrics_box.add(self.current_lyrics_label)
+
+        self.next_lyrics_label = arcade.gui.UILabel(size_hint=(0.2, 0.95), width=self.window.width * 0.2, multiline=True, font_size=16, font_name="Roboto", text_color=arcade.color.GRAY, text=self.current_synchronized_lyrics if self.current_synchronized_lyrics else "Play a song to get lyrics.")
+        self.lyrics_box.add(self.next_lyrics_label)
 
         # Controls
 
@@ -270,6 +282,9 @@ class Main(arcade.gui.UIView):
             self.current_music_player = None
             self.current_music_path = None
             self.progressbar.value = 0
+            self.current_synchronized_lyrics = None
+            self.lyrics_times = None
+            self.parsed_lyrics = None
             self.current_music_thumbnail_image.texture = music_icon
             self.current_music_title_label.text = "No songs playing"
             self.full_length_label.text = "00:00"
@@ -294,7 +309,7 @@ class Main(arcade.gui.UIView):
 
     def view_metadata(self, file_path):
         from menus.metadata_viewer import MetadataViewer
-        self.window.show_view(MetadataViewer(self.pypresence_client, "file", self.file_metadata[file_path], file_path, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
+        self.window.show_view(MetadataViewer(self.pypresence_client, "file", self.file_metadata[file_path], file_path, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.current_synchronized_lyrics, self.queue, self.loaded_sounds, self.shuffle))
 
     def show_content(self, tab, content_type):
         for music_button in self.music_buttons.values():
@@ -328,8 +343,8 @@ class Main(arcade.gui.UIView):
         row, col = 0, 0
 
         for n, music_filename in enumerate(content_to_show):
-            row = n // 8
-            col = n % 8
+            row = n // self.music_grid.column_count
+            col = n % self.music_grid.column_count
 
             if self.current_mode == "files":
                 music_path = f"{tab}/{music_filename}"
@@ -338,17 +353,17 @@ class Main(arcade.gui.UIView):
 
             metadata = self.file_metadata[music_path]
             
-            self.music_buttons[music_path] = self.music_grid.add(Card(metadata["thumbnail"], get_wordwrapped_text(metadata["title"]), get_wordwrapped_text(metadata["artist"]), width=self.window.width / 9, height=self.window.width / 9), row=row, column=col)
+            self.music_buttons[music_path] = self.music_grid.add(Card(metadata["thumbnail"], get_wordwrapped_text(metadata["title"]), get_wordwrapped_text(metadata["artist"]), width=self.window.width / (self.music_grid.column_count + 1), height=self.window.width / (self.music_grid.column_count + 1)), row=row, column=col)
             self.music_buttons[music_path].button.on_click = lambda event, music_path=music_path: self.music_button_click(event, music_path)
 
-        row = (n + 1) // 8
-        col = (n + 1) % 8
+        row = (n + 1) // self.music_grid.column_count
+        col = (n + 1) % self.music_grid.column_count
 
         self.music_grid.row_count = row + 1
         self.music_grid._update_size_hints()
 
         if self.current_mode == "playlist":
-            self.music_buttons["add_music"] = self.music_grid.add(Card(music_icon, "Add Music", None, width=self.window.width / 9, height=self.window.width / 9), row=row, column=col)
+            self.music_buttons["add_music"] = self.music_grid.add(Card(music_icon, "Add Music", None, width=self.window.width / (self.music_grid.column_count + 1), height=self.window.width / (self.music_grid.column_count + 1)), row=row, column=col)
             self.music_buttons["add_music"].button.on_click = lambda event: self.add_music()
 
         self.anchor.detect_focusable_widgets()
@@ -365,7 +380,7 @@ class Main(arcade.gui.UIView):
                 with open("settings.json", "w") as file:
                     file.write(json.dumps(self.settings_dict, indent=4))
 
-            self.window.show_view(Main(self.pypresence_client, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
+            self.window.show_view(Main(self.pypresence_client, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.current_synchronized_lyrics, self.queue, self.loaded_sounds, self.shuffle))
             
     def load_content(self):
         self.tab_content.clear()
@@ -436,6 +451,17 @@ class Main(arcade.gui.UIView):
             self.current_music_player.volume = self.volume / 100
 
     def on_update(self, delta_time):
+        if self.current_synchronized_lyrics:
+            closest_lyrics_time = get_closest_time(self.current_music_player.time, self.lyrics_times)
+            self.current_lyrics_label.text = self.parsed_lyrics.get(closest_lyrics_time, '[Music]') or '[Music]'
+            self.current_lyrics_label.fit_content()
+
+            if closest_lyrics_time in self.lyrics_times:
+                next_lyrics_times = self.lyrics_times[self.lyrics_times.index(closest_lyrics_time) + 1:self.lyrics_times.index(closest_lyrics_time) + 11]
+                self.next_lyrics_label.text = '\n'.join([self.parsed_lyrics[next_lyrics_time] for next_lyrics_time in next_lyrics_times])
+            else:
+                self.next_lyrics_label.text = '\n'.join(list(self.parsed_lyrics.values())[0:10])
+
         if self.should_reload:
             self.should_reload = False
             self.reload()
@@ -476,6 +502,8 @@ class Main(arcade.gui.UIView):
                 self.full_length_label.text = "00:00"
                 self.progressbar.max_value = self.current_length
                 self.progressbar.value = 0
+                self.current_synchronized_lyrics = get_lyrics(self.current_music_artist, self.current_music_title)[1]
+                self.lyrics_times, self.parsed_lyrics = parse_synchronized_lyrics(self.current_synchronized_lyrics) if self.current_synchronized_lyrics else (None, None)
 
             else:
                 if self.current_music_player is not None:
@@ -541,31 +569,31 @@ class Main(arcade.gui.UIView):
         from menus.global_search import GlobalSearch
         arcade.unschedule(self.update_presence)
         self.ui.clear()
-        self.window.show_view(GlobalSearch(self.pypresence_client, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
+        self.window.show_view(GlobalSearch(self.pypresence_client, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.current_synchronized_lyrics, self.queue, self.loaded_sounds, self.shuffle))
 
     def settings(self):
         from menus.settings import Settings
         arcade.unschedule(self.update_presence)
         self.ui.clear()
-        self.window.show_view(Settings(self.pypresence_client, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
+        self.window.show_view(Settings(self.pypresence_client, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.current_synchronized_lyrics, self.queue, self.loaded_sounds, self.shuffle))
 
     def new_tab(self):
         from menus.new_tab import NewTab
         arcade.unschedule(self.update_presence)
         self.ui.clear()
-        self.window.show_view(NewTab(self.pypresence_client, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
+        self.window.show_view(NewTab(self.pypresence_client, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.current_synchronized_lyrics, self.queue, self.loaded_sounds, self.shuffle))
 
     def add_music(self):
         from menus.add_music import AddMusic
         arcade.unschedule(self.update_presence)
         self.ui.clear()
-        self.window.show_view(AddMusic(self.pypresence_client, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
+        self.window.show_view(AddMusic(self.pypresence_client, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.current_synchronized_lyrics, self.queue, self.loaded_sounds, self.shuffle))
 
     def downloader(self):
         from menus.downloader import Downloader
         arcade.unschedule(self.update_presence)
         self.ui.clear()
-        self.window.show_view(Downloader(self.pypresence_client, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.queue, self.loaded_sounds, self.shuffle))
+        self.window.show_view(Downloader(self.pypresence_client, self.current_tab, self.current_mode, self.current_music_artist, self.current_music_title, self.current_music_path, self.current_length, self.current_music_player, self.current_synchronized_lyrics, self.queue, self.loaded_sounds, self.shuffle))
 
     def reload(self):
         self.load_content()

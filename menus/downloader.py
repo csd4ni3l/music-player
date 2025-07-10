@@ -49,20 +49,27 @@ class Downloader(arcade.gui.UIView):
         self.anchor.detect_focusable_widgets()
 
     def on_update(self, delta_time: float) -> bool | None:
-        self.status_label.text = self.yt_dl_buffer
+        if not self.yt_dl_buffer == "download_yt_dlp":
+            self.status_label.text = self.yt_dl_buffer
 
-        if "WARNING" in self.yt_dl_buffer:
-            self.status_label.update_font(font_color=arcade.color.YELLOW)
-        elif "ERROR" in self.yt_dl_buffer:
-            self.status_label.update_font(font_color=arcade.color.RED)
+            if "WARNING" in self.yt_dl_buffer:
+                self.status_label.update_font(font_color=arcade.color.YELLOW)
+            elif "ERROR" in self.yt_dl_buffer:
+                self.status_label.update_font(font_color=arcade.color.RED)
+            else:
+                self.status_label.update_font(font_color=arcade.color.LIGHT_GREEN)
         else:
-            self.status_label.update_font(font_color=arcade.color.LIGHT_GREEN)
+            msgbox = self.ui.add(arcade.gui.UIMessageBox(width=self.window.width / 2, height=self.window.height / 2, title="This app needs to download third-party software.", message_text="This app needs to download yt-dlp (a third-party tool) to enable video/audio downloading.\n Do you want to continue?", buttons=("Yes", "No")))
+            msgbox.on_action = lambda event: self.install_and_run_yt_dlp() if event.action == "Yes" else None
+            self.yt_dl_buffer = ''
 
     def run_yt_dlp(self, url):
-        yt_dlp_path = self.ensure_yt_dlp()
-
+        if not self.check_for_yt_dlp():
+            self.yt_dl_buffer = "download_yt_dlp"
+            return None
+                
         command = [
-            yt_dlp_path, f"{url}",
+            self.get_yt_dlp_path(), f"{url}",
             "--write-info-json",
             "-x", "--audio-format", "mp3",
             "-o", "downloaded_music.mp3",
@@ -101,6 +108,8 @@ class Downloader(arcade.gui.UIView):
         path = os.path.expanduser(self.tab_selector.value)
 
         info = self.run_yt_dlp(url)
+        if not info:
+            return # download will get re-executed.
         
         os.remove("downloaded_music.mp3.info.json")
         os.remove("downloaded_music.info.json")
@@ -155,33 +164,41 @@ class Downloader(arcade.gui.UIView):
 
         self.yt_dl_buffer = f"Successfully downloaded {title} to {path}"
 
-    def ensure_yt_dlp(self):
+    def get_yt_dlp_path(self):
         system = platform.system()
 
         if system == "Windows":
-            path = os.path.join("bin", "yt-dlp.exe")
+            return os.path.join("bin", "yt-dlp.exe")
         elif system == "Darwin":
-            path = os.path.join("bin", "yt-dlp_macos")
+            return os.path.join("bin", "yt-dlp_macos")
         elif system == "Linux":
-            path = os.path.join("bin", "yt-dlp_linux")
+            return os.path.join("bin", "yt-dlp_linux")
+
+    def check_for_yt_dlp(self):
+        path = self.get_yt_dlp_path()
             
         if not os.path.exists("bin"):
             os.makedirs("bin")
 
-        if not os.path.exists(path):
-            if system == "Windows":
-                url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
-            elif system == "Darwin":
-                url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos"
-            elif system == "Linux":
-                url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux"
-            else:
-                raise RuntimeError("Unsupported OS")
+        return os.path.exists(path)
 
-            urllib.request.urlretrieve(url, path)
-            os.chmod(path, 0o755)
+    def install_and_run_yt_dlp(self):
+        system = platform.system()
+        path = self.get_yt_dlp_path()
 
-        return path
+        if system == "Windows":
+            url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
+        elif system == "Darwin":
+            url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos"
+        elif system == "Linux":
+            url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux"
+        else:
+            raise RuntimeError("Unsupported OS")
+
+        urllib.request.urlretrieve(url, path)
+        os.chmod(path, 0o755)
+        
+        threading.Thread(target=self.download, daemon=True).start()
 
     def main_exit(self):
         from menus.main import Main

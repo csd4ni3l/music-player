@@ -6,10 +6,13 @@ from arcade.gui.widgets.slider import UISliderStyle
 menu_background_color = (17, 17, 17)
 log_dir = 'logs'
 discord_presence_id = 1368277020332523530
-audio_extensions = ["mp3", "m4a", "aac", "flac", "ogg", "opus", "wav"]
+audio_extensions = ["mp3"]
 view_modes = ["files", "playlist"]
 
+MUSIC_TITLE_WORD_BLACKLIST = ["compilation", "remix", "vs", "cover", "version", "instrumental", "restrung", "interlude"]
 COVER_CACHE_DIR = "cover_cache"
+ACOUSTID_API_KEY = 'PuUkMEnUXf'
+LRCLIB_BASE_URL = "https://lrclib.net/api/search"
 
 MUSICBRAINZ_PROJECT_NAME = "csd4ni3l/music-player"
 MUSCIBRAINZ_VERSION = "git"

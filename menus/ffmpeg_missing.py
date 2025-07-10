@@ -1,6 +1,6 @@
 import arcade, arcade.gui
 
-import os, sys, subprocess, platform, urllib.request, zipfile, logging
+import os, sys, subprocess, platform, logging
 
 class FFmpegMissing(arcade.gui.UIView):
     def __init__(self):
@@ -15,11 +15,11 @@ class FFmpegMissing(arcade.gui.UIView):
                 height=self.window.height / 2,
                 title="FFmpeg Missing",
                 message_text="FFmpeg has not been found but is required for this application.",
-                buttons=("Exit", "Auto Install")
+                buttons=("Exit", "Install")
             )
         )
 
-        msgbox.on_action = lambda event: self.install_ffmpeg() if event.action == "Auto Install" else sys.exit()
+        msgbox.on_action = lambda event: self.install_ffmpeg() if event.action == "Install" else sys.exit()
 
     def install_ffmpeg(self):
         bin_dir = os.path.join(os.getcwd(), "bin")
@@ -28,22 +28,9 @@ class FFmpegMissing(arcade.gui.UIView):
         system = platform.system()
 
         if system == "Linux" or system == "Darwin":
-            url = "https://evermeet.cx/ffmpeg/ffmpeg-7.1.1.zip"
-            filename = "ffmpeg.zip"
-
-            logging.debug(f"Downloading FFmpeg from {url}...")
-            file_path = os.path.join(bin_dir, filename)
-            urllib.request.urlretrieve(url, file_path)
-
-            logging.debug("Extracting FFmpeg...")
-            with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                zip_ref.extractall(bin_dir)
-                
-            ffmpeg_path = os.path.join(bin_dir, "ffmpeg")
-            os.chmod(ffmpeg_path, 0o755)
-
-            os.remove(file_path)
-            logging.debug("FFmpeg installed in ./bin")
+            msgbox = self.add_widget(arcade.gui.UIMessageBox(message_text="You are on a Linux or Darwin based OS. You need to install FFmpeg, and libavcodec shared libraries from your package manager so it is in PATH.", width=self.window.width / 2, height=self.window.height / 2))
+            msgbox.on_action = lambda: sys.exit()
+            return
 
         elif system == "Windows":
             try:
@@ -52,11 +39,12 @@ class FFmpegMissing(arcade.gui.UIView):
                     "--accept-source-agreements", "--accept-package-agreements"
                 ], check=True)
                 logging.debug("FFmpeg installed via winget.")
+                msgbox = self.add_widget(arcade.gui.UIMessageBox(message_text="You are on a Linux or Darwin based OS. You need to install FFmpeg, and libavcodec shared libraries from your package manager so it is in PATH.", width=self.window.width / 2, height=self.window.height / 2))
+                msgbox.on_action = lambda: sys.exit()
+                return
+
             except subprocess.CalledProcessError as e:
                 logging.debug("Failed to install FFmpeg via winget:", e)
 
         else:
-            logging.error(f"Unsupported OS: {system}")
-
-        from menus.main import Main
-        self.window.show_view(Main())
+            self.add_widget(arcade.gui.UIMessageBox(message_text="Your OS is unsupported by this script. You are probably on some kind of BSD system. Please install FFmpeg and libavcodec shared libraries from your package manager so it is in PATH.", width=self.window.width / 2, height=self.window.height / 2))

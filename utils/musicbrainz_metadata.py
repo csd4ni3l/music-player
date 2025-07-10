@@ -1,20 +1,10 @@
 import musicbrainzngs as music_api
 
-from io import BytesIO
+from utils.constants import MUSICBRAINZ_PROJECT_NAME, MUSICBRAINZ_CONTACT, MUSCIBRAINZ_VERSION, MUSIC_TITLE_WORD_BLACKLIST
+from utils.lyrics_metadata import get_lyrics
+from utils.utils import ensure_metadata_file
 
-from PIL import Image
-
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-from urllib.request import urlopen, Request
-from urllib.error import URLError, HTTPError
-
-from utils.constants import MUSICBRAINZ_PROJECT_NAME, MUSICBRAINZ_CONTACT, MUSCIBRAINZ_VERSION, COVER_CACHE_DIR
-
-import urllib.request, json, os, arcade, logging, iso3166
-
-WORD_BLACKLIST = ["compilation", "remix", "vs", "cover", "version", "instrumental", "restrung", "interlude"]
-LRCLIB_BASE_URL = "https://lrclib.net/api/search"
+import json, iso3166
 
 def get_country(code):
     country = iso3166.countries.get(code, None)
@@ -24,9 +14,9 @@ def check_blacklist(text, blacklist):
     return any(word in text for word in blacklist)
 
 def finalize_blacklist(title):
-    blacklist = WORD_BLACKLIST[:]
+    blacklist = MUSIC_TITLE_WORD_BLACKLIST[:]
 
-    for word in WORD_BLACKLIST:
+    for word in MUSIC_TITLE_WORD_BLACKLIST:
         if word in title:
             blacklist.remove(word)
 
@@ -34,21 +24,6 @@ def finalize_blacklist(title):
 
 def is_release_valid(release):
     return release.get("release-event-count", 0) == 0 # only include albums
-
-def ensure_metadata_file():
-    if os.path.exists("metadata_cache.json") and os.path.isfile("metadata_cache.json"):
-        with open("metadata_cache.json", "r") as file:
-            metadata_cache = json.load(file)
-    else:
-        metadata_cache = {
-            "query_results": {},
-            "recording_by_id": {},
-            "artist_by_id": {},
-            "lyrics_by_artist_title": {},
-            "album_by_id": {}
-        }
-
-    return metadata_cache
 
 def get_artists_metadata(artist_ids):
     metadata_cache = ensure_metadata_file()
@@ -121,6 +96,7 @@ def extract_release_metadata(release_list):
                     "album_name": release.get("title") if release else "Unknown",
                     "album_date": release.get("date") if release else "Unknown",
                     "album_country": (get_country(release.get("country", "WZ")) or "Worldwide") if release else "Unknown",
+                    "album_tracks": [track['recording']['title'] for track in release.get('medium-list', [{}])[0].get('track-list', [])[:3]]
                 }
                 metadata_cache["album_by_id"][release_id] = album_metadata[release_id]
 
@@ -142,7 +118,7 @@ def get_album_metadata(album_id):
             "album_name": release.get("title") if release else "Unknown",
             "album_date": release.get("date") if release else "Unknown",
             "album_country": (get_country(release.get("country", "WZ")) or "Worldwide") if release else "Unknown",
-            "album_tracks": [track['recording']['title'] for track in release.get('medium-list', [])[0].get('track-list', {})[:3]]
+            "album_tracks": [track['recording']['title'] for track in release.get('medium-list', [{}])[0].get('track-list', [])[:3]]
         }
         metadata_cache["album_by_id"][release["id"]] = album_metadata
 
@@ -161,6 +137,8 @@ def get_music_metadata(artist=None, title=None, musicbrainz_id=None):
             query = f"{artist} - {title}"
         else:
             query = title
+
+        recording_id = None
 
         if query in metadata_cache["query_results"]:
             recording_id = metadata_cache["query_results"][query]
@@ -186,19 +164,30 @@ def get_music_metadata(artist=None, title=None, musicbrainz_id=None):
     if recording_id in metadata_cache["recording_by_id"]:
         detailed = metadata_cache["recording_by_id"][recording_id]
     else:
-        detailed = music_api.get_recording_by_id(
-            recording_id,
-            includes=["artists", "releases", "isrcs", "tags", "ratings"]
-        )["recording"]
-        metadata_cache["recording_by_id"][recording_id] = {
-            "title": detailed["title"],
-            "artist-credit": [{"artist": {"id": artist_data["artist"]["id"]}} for artist_data in detailed.get("artist-credit", {}) if isinstance(artist_data, dict)],
-            "isrc-list":  detailed["isrc-list"] if "isrc-list" in detailed else [],
-            "rating": {"rating": detailed["rating"]["rating"]} if "rating" in detailed else {},
-            "tags": detailed.get("tag-list", []),
-            "release-list": [{"id": release["id"], "title": release["title"], "status": release.get("status"), "date": release.get("date"), "country": release.get("country", "WZ")} for release in detailed["release-list"]] if "release-list" in detailed else [],
-            "release-event-count": detailed.get("release-event-count", 0)
-        }
+        if recording_id:
+            detailed = music_api.get_recording_by_id(
+                recording_id,
+                includes=["artists", "releases", "isrcs", "tags", "ratings"]
+            )["recording"]
+            metadata_cache["recording_by_id"][recording_id] = {
+                "title": detailed["title"],
+                "artist-credit": [{"artist": {"id": artist_data["artist"]["id"]}} for artist_data in detailed.get("artist-credit", {}) if isinstance(artist_data, dict)],
+                "isrc-list":  detailed["isrc-list"] if "isrc-list" in detailed else [],
+                "rating": {"rating": detailed["rating"]["rating"]} if "rating" in detailed else {},
+                "tags": detailed.get("tag-list", []),
+                "release-list": [{"id": release["id"], "title": release["title"], "status": release.get("status"), "date": release.get("date"), "country": release.get("country", "WZ")} for release in detailed["release-list"]] if "release-list" in detailed else [],
+                "release-event-count": detailed.get("release-event-count", 0)
+            }
+        else:
+            detailed = metadata_cache["recording_by_id"][recording_id] = {
+                "title": title,
+                "artist-credit": [],
+                "isrc-list": [],
+                "rating": {},
+                "tags": [],
+                "release-list": [],
+                "release-event-count": 0
+            }
 
     with open("metadata_cache.json", "w") as file:
         file.write(json.dumps(metadata_cache))
@@ -213,73 +202,7 @@ def get_music_metadata(artist=None, title=None, musicbrainz_id=None):
         "musicbrainz_rating": detailed["rating"]["rating"] if "rating" in detailed.get("rating", {}) else "Unknown",
         "tags": [tag["name"] for tag in detailed.get("tag-list", [])]
     }
-    return music_metadata, artist_metadata, album_metadata, get_lyrics(', '.join([artist for artist in artist_metadata]), detailed["title"])[0]
-
-def get_lyrics(artist, title):
-    metadata_cache = ensure_metadata_file()
-
-    if (artist, title) in metadata_cache["lyrics_by_artist_title"]:
-        return metadata_cache["lyrics_by_artist_title"][(artist, title)]
-    else:
-        if artist:
-            query = f"{artist} - {title}"
-        else:
-            query = title
-    
-        query_string = urllib.parse.urlencode({"q": query})
-        full_url = f"{LRCLIB_BASE_URL}?{query_string}"
-
-        with urllib.request.urlopen(full_url) as request:
-            data = json.loads(request.read().decode("utf-8"))
-    
-        for result in data:
-            if result.get("plainLyrics") and result.get("syncedLyrics"):
-                metadata_cache["lyrics_by_artist_title"][(artist, title)] = (result["plainLyrics"], result["syncedLyrics"])
-                return (result["plainLyrics"], result["syncedLyrics"])
-        
-    with open("metadata_cache.json", "w") as file:
-        file.write(json.dumps(metadata_cache))
-
-    if artist: # if there was an artist, it might have been misleading. For example, on Youtube, the uploader might not be the artist. We retry with only title.
-        return get_lyrics(None, title)
-
-def fetch_image_bytes(url):
-    try:
-        req = Request(url, headers={"User-Agent": "csd4ni3l/music-player/git python-musicbrainzngs/0.7.1 ( csd4ni3l@proton.me )"})
-        with urlopen(req, timeout=10) as resp:
-            return resp.read()
-    except (HTTPError, URLError) as e:
-        logging.debug(f"Error fetching {url}: {e}")
-        return None
-
-def download_cover_art(mb_album_id, size=250):
-    path = os.path.join(COVER_CACHE_DIR, f"{mb_album_id}_{size}.png")
-    if os.path.exists(path):
-        return mb_album_id, Image.open(path)
-
-    url = f"https://coverartarchive.org/release/{mb_album_id}/front-{size}"
-    img_bytes = fetch_image_bytes(url)
-    if not img_bytes:
-        return mb_album_id, None
-
-    try:
-        img = Image.open(BytesIO(img_bytes)).convert("RGBA")
-        img.save(path)
-        return mb_album_id, img
-    except Exception as e:
-        logging.debug(f"Failed to decode/save image for {mb_album_id}: {e}")
-        return mb_album_id, None
-
-def download_albums_cover_art(album_ids, size=250, max_workers=5):
-    music_api.set_useragent(MUSICBRAINZ_PROJECT_NAME, MUSCIBRAINZ_VERSION, MUSICBRAINZ_CONTACT)
-    os.makedirs(COVER_CACHE_DIR, exist_ok=True)
-    images = {}
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(download_cover_art, album_id, size) for album_id in album_ids]
-        for future in as_completed(futures):
-            album_id, img = future.result()
-            images[album_id] = arcade.Texture(img) if img else None
-    return images
+    return music_metadata, artist_metadata, album_metadata, get_lyrics(', '.join([artist for artist in artist_metadata]), detailed["title"])
 
 def search_recordings(search_term):
     music_api.set_useragent(MUSICBRAINZ_PROJECT_NAME, MUSCIBRAINZ_VERSION, MUSICBRAINZ_CONTACT)

@@ -1,4 +1,4 @@
-import logging, sys, traceback, pyglet, arcade, arcade.gui, textwrap
+import logging, sys, traceback, pyglet, arcade, arcade.gui, textwrap, os, json
 
 from utils.constants import menu_background_color
 
@@ -197,3 +197,18 @@ def get_wordwrapped_text(text, width=18):
         output_text = '\n'.join(textwrap.wrap(text, width=width))
 
     return output_text
+
+def ensure_metadata_file():
+    if os.path.exists("metadata_cache.json") and os.path.isfile("metadata_cache.json"):
+        with open("metadata_cache.json", "r") as file:
+            metadata_cache = json.load(file)
+    else:
+        metadata_cache = {
+            "query_results": {},
+            "recording_by_id": {},
+            "artist_by_id": {},
+            "lyrics_by_artist_title": {},
+            "album_by_id": {}
+        }
+
+    return metadata_cache

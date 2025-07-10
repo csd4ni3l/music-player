@@ -3,7 +3,7 @@ import arcade, arcade.gui
 from utils.preload import music_icon, person_icon, button_texture, button_hovered_texture
 from utils.constants import button_style
 from utils.utils import Card, MouseAwareScrollArea, get_wordwrapped_text
-from utils.online_metadata import search_recordings, search_artists, search_albums, get_artists_metadata, get_album_metadata
+from utils.musicbrainz_metadata import search_recordings, search_artists, search_albums, get_artists_metadata, get_album_metadata
 
 from arcade.gui.experimental.focus import UIFocusGroup
 from arcade.gui.experimental.scroll_area import UIScrollBar

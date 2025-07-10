@@ -11,10 +11,9 @@ Features:
 - Custom playlists
 - Fast search using just text, and instant best result playback using enter
 - Discord RPC
-
-Features TBD:
-- Improved UI looks
-- More keyboard shortcuts
-- Vim keybindings(focusing with up down arrow keys)
-- Replace paths with own file manager
-- And much more!
+- MusicBrainz metadata
+- MusicBrainz global search
+- AcoustID automatic music recognition
+- Lyrics from lrclib
+- Synchronized Lyrics
+- Controller support

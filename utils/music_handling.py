@@ -1,12 +1,12 @@
-import io, base64, tempfile, struct, re, os, logging, arcade, time
+import io, tempfile, re, os, logging, arcade, time
 
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3, TXXX, ID3NoHeaderError
-from mutagen import File
+from mutagen.id3 import ID3, TXXX, SYLT, ID3NoHeaderError
 
 from pydub import AudioSegment
 from PIL import Image
 
+from utils.lyrics_metadata import parse_synchronized_lyrics
 from utils.utils import convert_seconds_to_date
 
 def truncate_end(text: str, max_length: int) -> str:
@@ -16,7 +16,7 @@ def truncate_end(text: str, max_length: int) -> str:
         return text
     return text[:max_length - 3] + '...'
 
-def extract_metadata_and_thumbnail(file_path: str, thumb_resolution: tuple) -> tuple:
+def extract_metadata_and_thumbnail(file_path: str, thumb_resolution: tuple):
     artist = "Unknown"
     title = ""
     source_url = "Unknown"
@@ -31,55 +31,40 @@ def extract_metadata_and_thumbnail(file_path: str, thumb_resolution: tuple) -> t
 
     basename = os.path.basename(file_path)
     name_only = os.path.splitext(basename)[0]
-    ext = os.path.splitext(file_path)[1].lower().lstrip('.')
 
     try:
-        thumb_audio = EasyID3(file_path)
         try:
-            artist = str(thumb_audio["artist"][0])
-            title = str(thumb_audio["title"][0])
-            upload_year = int(thumb_audio["date"][0])
-        except KeyError:
-            artist_title_match = re.search(r'^.+\s*-\s*.+$', title)
-            if artist_title_match:
-                title = title.split("- ")[1]
+            easyid3 = EasyID3(file_path)
+            if "artist" in easyid3:  
+                artist = easyid3["artist"][0]
+            if "title" in easyid3:
+                title  = easyid3["title"][0]
+            if "date" in easyid3:
+                upload_year = int(re.match(r"\d{4}", easyid3["date"][0]).group())
 
-        file_audio = File(file_path)
-        if hasattr(file_audio, 'info'):
-            sound_length = round(file_audio.info.length, 2)
-            bitrate = int((file_audio.info.bitrate or 0) / 1000)
-            sample_rate = int(file_audio.info.sample_rate / 1000)
+            id3 = ID3(file_path)
+            for frame in id3.getall("WXXX"):
+                desc = frame.desc.lower()
+                if desc == "uploader":
+                    uploader_url = frame.url
+                elif desc == "source":
+                    source_url = frame.url
+            for frame in id3.getall("TXXX"):
+                desc = frame.desc.lower()
+                if desc == "last_played":
+                    last_played = float(frame.text[0])
+                elif desc == "play_count":
+                    play_count = int(frame.text[0])
+        except ID3NoHeaderError:
+            pass
 
-        thumb_image_data = None
-        if ext == 'mp3':
-            for tag in file_audio.values():
-                if tag.FrameID == "APIC":
-                    thumb_image_data = tag.data
-                    break
-        elif ext in ('m4a', 'aac'):
-            if 'covr' in file_audio:
-                thumb_image_data = file_audio['covr'][0]
-        elif ext == 'flac':
-            if file_audio.pictures:
-                thumb_image_data = file_audio.pictures[0].data
-        elif ext in ('ogg', 'opus'):
-            if "metadata_block_picture" in file_audio:
-                pic_data = base64.b64decode(file_audio["metadata_block_picture"][0])
-                header_len = struct.unpack(">I", pic_data[0:4])[0]
-                thumb_image_data = pic_data[4 + header_len:]
+        if hasattr(easyid3, "info"):
+            sound_length = round(easyid3.info.length, 2)
+            bitrate = int((easyid3.info.bitrate or 0) / 1000)
+            sample_rate = int(easyid3.info.sample_rate / 1000)
 
-        id3 = ID3(file_path)
-        for frame in id3.getall("WXXX"):
-            if frame.desc.lower() == "uploader":
-                uploader_url = frame.url
-            elif frame.desc.lower() == "source":
-                source_url = frame.url
-
-        for frame in id3.getall("TXXX"):
-            if frame.desc.lower() == "last_played":
-                last_played = float(frame.text[0])
-            elif frame.desc.lower() == "play_count":
-                play_count = int(frame.text[0])
+        apic = id3.getall("APIC")
+        thumb_image_data = apic[0].data if apic else None
 
         if thumb_image_data:
             pil_image = Image.open(io.BytesIO(thumb_image_data)).convert("RGBA")
@@ -90,22 +75,19 @@ def extract_metadata_and_thumbnail(file_path: str, thumb_resolution: tuple) -> t
         logging.debug(f"[Metadata/Thumbnail Error] {file_path}: {e}")
 
     if artist == "Unknown" or not title:
-        match = re.search(r'^(.*?)\s+-\s+(.*?)$', name_only)
-        if match:
-            file_path_artist, file_path_title = match.groups()
-            if artist == "Unknown":
-                artist = file_path_artist
-            if not title:
-                title = file_path_title
+        m = re.match(r"^(.*?)\s+-\s+(.*?)$", name_only) # check for artist - title titles in the title
+        if m:
+            artist = m.group(1)
+            title  = m.group(2)
 
-    if not title:
+    if not title: 
         title = name_only
-
+    
     if thumb_texture is None:
         from utils.preload import music_icon
         thumb_texture = music_icon
 
-    file_size = round(os.path.getsize(file_path) / (1024 ** 2), 2) # MiB
+    file_size = round(os.path.getsize(file_path) / (1024 ** 2), 2)
 
     return {
         "sound_length": sound_length,
@@ -119,8 +101,9 @@ def extract_metadata_and_thumbnail(file_path: str, thumb_resolution: tuple) -> t
         "source_url": source_url,
         "artist": artist,
         "title": title,
-        "thumbnail": thumb_texture
+        "thumbnail": thumb_texture,
     }
+
 
 def adjust_volume(input_path, volume):
     audio = AudioSegment.from_file(input_path)
@@ -191,3 +174,25 @@ def convert_timestamp_to_time_ago(timestamp):
         return convert_seconds_to_date(elapsed_time) + ' ago'
     else:
         return "Never"
+
+def add_metadata_to_file(file_path, musicbrainz_artist_ids, artist, title, synchronized_lyrics, isrc, acoustid_id=None):
+    easyid3 = EasyID3(file_path)
+    easyid3["musicbrainz_artistid"] = musicbrainz_artist_ids
+    easyid3["artist"] = artist
+    easyid3["title"] = title
+    easyid3["isrc"] = isrc
+
+    if acoustid_id:
+        easyid3["acoustid_id"] = acoustid_id
+
+    easyid3.save()
+
+    id3 = ID3(file_path)
+    id3.delall("SYLT")
+
+    lyrics_dict = parse_synchronized_lyrics(synchronized_lyrics)[1]
+    synchronized_lyrics_tuples = [(text, int(lyrics_time * 1000)) for lyrics_time, text in lyrics_dict.items()] # * 1000 because format 2 means milliseconds
+
+    id3.add(SYLT(encoding=3, lang="eng", format=2, type=1, desc="From lrclib", text=synchronized_lyrics_tuples))
+    
+    id3.save()
