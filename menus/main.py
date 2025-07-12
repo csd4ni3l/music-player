@@ -285,6 +285,9 @@ class Main(arcade.gui.UIView):
             self.current_synchronized_lyrics = None
             self.lyrics_times = None
             self.parsed_lyrics = None
+            self.current_lyrics_label.text = "Play a song to get lyrics."
+            self.next_lyrics_label.text = "Play a song to get lyrics."
+            self.current_music_artist_label.text = "No songs playing"
             self.current_music_thumbnail_image.texture = music_icon
             self.current_music_title_label.text = "No songs playing"
             self.full_length_label.text = "00:00"
@@ -504,6 +507,10 @@ class Main(arcade.gui.UIView):
                 self.progressbar.value = 0
                 self.current_synchronized_lyrics = get_lyrics(self.current_music_artist, self.current_music_title)[1]
                 self.lyrics_times, self.parsed_lyrics = parse_synchronized_lyrics(self.current_synchronized_lyrics) if self.current_synchronized_lyrics else (None, None)
+
+                if not self.current_synchronized_lyrics:
+                    self.current_lyrics_label.text = "No known lyrics found"
+                    self.next_lyrics_label.text = "No known lyrics found"
 
             else:
                 if self.current_music_player is not None:
