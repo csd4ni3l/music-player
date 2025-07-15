@@ -1,7 +1,8 @@
-import os
+import os, certifi
 bin_path = os.path.join(os.getcwd(), "bin")
 current_path = os.environ.get("PATH", "")
 os.environ["PATH"] = f"{bin_path}{os.pathsep}{current_path}"
+os.environ['SSL_CERT_FILE'] = certifi.where() # Fix SSL not working and downloads crashing.
 
 import pyglet
 

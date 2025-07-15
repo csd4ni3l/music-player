@@ -17,3 +17,6 @@ pydub - https://github.com/jiaaro/pydub - Used for audio dBFS and normalization
 yt-dlp - https://github.com/yt-dlp/yt-dlp - Used for downloading music
 thefuzz and dependencies - https://github.com/seatgeek/thefuzz - Used for fuzzy search
 mutagen - https://github.com/quodlibet/mutagen - Used for audio metadata extraction and modification
+musicbrainzngs - https://github.com/alastair/python-musicbrainzngs - Used for MusicBrainz metadata
+pyacoustid - https://github.com/beetbox/pyacoustid - Used to analyze song fingerprints and look them up to get accurate metadata, if possible.
+certifi - https://github.com/certifi/python-certifi - Used to fix SSL issues inside the binaries.

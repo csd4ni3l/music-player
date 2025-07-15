@@ -7,7 +7,9 @@ attrs==25.3.0
 audioread==3.0.1
     # via pyacoustid
 certifi==2025.7.9
-    # via requests
+    # via
+    #   musicplayer (pyproject.toml)
+    #   requests
 cffi==1.17.1
     # via pymunk
 charset-normalizer==3.4.2

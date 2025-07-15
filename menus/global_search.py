@@ -63,6 +63,8 @@ class GlobalSearch(arcade.gui.UIView):
 
         self.search_results_grid.clear()
 
+        row, col = 0, 0
+
         if search_type == "Music":
             recordings = search_recordings(search_term)
 
