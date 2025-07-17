@@ -5,7 +5,9 @@ import arcade, arcade.gui, os, json, threading, subprocess, urllib.request, plat
 
 from arcade.gui.experimental.focus import UIFocusGroup
 
-from utils.music_handling import adjust_volume
+from utils.music_handling import adjust_volume, add_metadata_to_file
+from utils.musicbrainz_metadata import get_music_metadata
+from utils.acoustid_metadata import get_recording_id_from_acoustid
 from utils.constants import button_style
 from utils.preload import button_texture, button_hovered_texture
 
@@ -151,6 +153,19 @@ class Downloader(arcade.gui.UIView):
                 except Exception as e:
                     self.yt_dl_buffer = f"ERROR: Could not normalize volume due to an error: {e}"
                     return
+                
+            self.yt_dl_buffer = "Analyzing with Acoustid to get accurate metadata..."
+            acoustid_id, musicbrainz_id = get_recording_id_from_acoustid("downloaded_music.mp3")
+
+            self.yt_dl_buffer = "Caching MusicBrainz and Lyrics metadata..."
+            if musicbrainz_id:
+                music_metadata, artist_metadata, album_metadata, lyrics_metadata = get_music_metadata(musicbrainz_id=musicbrainz_id)
+            else:
+                music_metadata, artist_metadata, album_metadata, lyrics_metadata = get_music_metadata(artist=artist, title=title)
+
+            self.yt_dl_buffer = "Adding missing metadata to file..."
+            add_metadata_to_file("downloaded_music.mp3", [artist['musicbrainz_id'] for artist in artist_metadata.values()], artist, title, lyrics_metadata[1], music_metadata["isrc-list"], acoustid_id)
+
             try:
                 output_filename = os.path.join(path, f"{title}.mp3")
                 os.replace("downloaded_music.mp3", output_filename)

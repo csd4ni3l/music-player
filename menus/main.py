@@ -485,16 +485,6 @@ class Main(arcade.gui.UIView):
 
                 update_last_play_statistics(music_path)
 
-                if not music_path in self.loaded_sounds:
-                    self.loaded_sounds[music_path] = arcade.Sound(music_path, streaming=self.settings_dict.get("music_mode", "Stream") == "Stream")
-
-                self.volume = self.settings_dict.get("default_volume", 100)
-                self.volume_slider.value = self.volume
-
-                self.current_music_player = self.loaded_sounds[music_path].play()
-                self.current_music_player.volume = self.volume / 100
-                self.current_length = self.loaded_sounds[music_path].get_length()
-
                 self.current_music_artist = artist
                 self.current_music_title = title
                 self.current_music_title_label.text = title
@@ -503,8 +493,6 @@ class Main(arcade.gui.UIView):
                 self.current_music_thumbnail_image.texture = self.file_metadata[music_path]["thumbnail"]
                 self.time_label.text = "00:00"
                 self.full_length_label.text = "00:00"
-                self.progressbar.max_value = self.current_length
-                self.progressbar.value = 0
                 self.current_synchronized_lyrics = get_lyrics(self.current_music_artist, self.current_music_title)[1]
                 self.lyrics_times, self.parsed_lyrics = parse_synchronized_lyrics(self.current_synchronized_lyrics) if self.current_synchronized_lyrics else (None, None)
 
@@ -512,6 +500,16 @@ class Main(arcade.gui.UIView):
                     self.current_lyrics_label.text = "No known lyrics found"
                     self.next_lyrics_label.text = "No known lyrics found"
 
+                if not music_path in self.loaded_sounds:
+                    self.loaded_sounds[music_path] = arcade.Sound(music_path, streaming=self.settings_dict.get("music_mode", "Stream") == "Stream")
+
+                self.volume = self.settings_dict.get("default_volume", 100)
+                self.volume_slider.value = self.volume
+                self.current_music_player = self.loaded_sounds[music_path].play()
+                self.current_music_player.volume = self.volume / 100
+                self.current_length = self.loaded_sounds[music_path].get_length()
+                self.progressbar.max_value = self.current_length
+                self.progressbar.value = 0
             else:
                 if self.current_music_player is not None:
                     self.skip_sound() # reset properties

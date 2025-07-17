@@ -30,8 +30,8 @@ def get_closest_time(current_time, lyrics_times):
 def get_lyrics(artist, title):
     metadata_cache = ensure_metadata_file()
 
-    if (artist, title) in metadata_cache["lyrics_by_artist_title"]:
-        return metadata_cache["lyrics_by_artist_title"][(artist, title)]
+    if artist in metadata_cache["lyrics_by_artist_title"] and title in metadata_cache["lyrics_by_artist_title"][artist]:
+        return metadata_cache["lyrics_by_artist_title"][artist][title]
     else:
         if artist:
             query = f"{artist} - {title}"
@@ -46,11 +46,13 @@ def get_lyrics(artist, title):
     
         for result in data:
             if result.get("plainLyrics") and result.get("syncedLyrics"):
-                metadata_cache["lyrics_by_artist_title"][(artist, title)] = (result["plainLyrics"], result["syncedLyrics"])
+                if not artist in metadata_cache["lyrics_by_artist_title"]:
+                    metadata_cache["lyrics_by_artist_title"][artist] = {}
+
+                metadata_cache["lyrics_by_artist_title"][artist][title] = (result["plainLyrics"], result["syncedLyrics"])
+                with open("metadata_cache.json", "w") as file:
+                    file.write(json.dumps(metadata_cache))
                 return (result["plainLyrics"], result["syncedLyrics"])
-        
-    with open("metadata_cache.json", "w") as file:
-        file.write(json.dumps(metadata_cache))
 
     if artist: # if there was an artist, it might have been misleading. For example, on Youtube, the uploader might not be the artist. We retry with only title.
         return get_lyrics(None, title)

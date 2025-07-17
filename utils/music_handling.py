@@ -190,9 +190,10 @@ def add_metadata_to_file(file_path, musicbrainz_artist_ids, artist, title, synch
     id3 = ID3(file_path)
     id3.delall("SYLT")
 
-    lyrics_dict = parse_synchronized_lyrics(synchronized_lyrics)[1]
-    synchronized_lyrics_tuples = [(text, int(lyrics_time * 1000)) for lyrics_time, text in lyrics_dict.items()] # * 1000 because format 2 means milliseconds
+    if synchronized_lyrics:
+        lyrics_dict = parse_synchronized_lyrics(synchronized_lyrics)[1]
+        synchronized_lyrics_tuples = [(text, int(lyrics_time * 1000)) for lyrics_time, text in lyrics_dict.items()] # * 1000 because format 2 means milliseconds
 
-    id3.add(SYLT(encoding=3, lang="eng", format=2, type=1, desc="From lrclib", text=synchronized_lyrics_tuples))
+        id3.add(SYLT(encoding=3, lang="eng", format=2, type=1, desc="From lrclib", text=synchronized_lyrics_tuples))
     
     id3.save()

@@ -9,7 +9,7 @@ from utils.constants import button_style
 from utils.preload import button_texture, button_hovered_texture
 from utils.utils import convert_seconds_to_date
 from utils.music_handling import convert_timestamp_to_time_ago, truncate_end, add_metadata_to_file
-from utils.acoustid_metadata import get_recording_id_from_acoustic, get_fpcalc_path, download_fpcalc
+from utils.acoustid_metadata import get_recording_id_from_acoustid, get_fpcalc_path
 
 class MetadataViewer(arcade.gui.UIView):
     def __init__(self, pypresence_client, metadata_type="file", metadata=None, file_path=None, *args):
@@ -28,20 +28,11 @@ class MetadataViewer(arcade.gui.UIView):
 
             self.artist = self.file_metadata["artist"] if not self.file_metadata["artist"] == "Unknown" else None
             self.title = self.file_metadata["title"]
-            if metadata.get("confirm_download") is None: 
-                if not os.path.exists(get_fpcalc_path()):
-                    self.msgbox = self.add_widget(arcade.gui.UIMessageBox(width=self.window.width / 2, height=self.window.height / 2, title="Third-party fpcalc download", message_text="We need to download fpcalc from AcoustID to recognize the song for you for better results.\nIf you say no, we will use a searching algorithm instead which might give wrong results.\nEven if fpcalc is downloaded, it might not find the music since its a community-based project.\nIf so, we will fallback to the searching algorithm.\nDo you want to continue?", buttons=("Yes", "No")))
-                    self.msgbox.on_action = lambda event: self.window.show_view(MetadataViewer(pypresence_client, metadata_type, metadata | {"confirm_download": event.action == "Yes"}, file_path, *args))
-                    return
-                else:
-                    self.acoustid_id, musicbrainz_id = get_recording_id_from_acoustic(self.file_path)
-            else:
-                if metadata["confirm_download"]:
-                    download_fpcalc()
-                    self.acoustid_id, musicbrainz_id = get_recording_id_from_acoustic(self.file_path)
 
-                else:
-                    self.acoustid_id = None
+            if os.path.exists(get_fpcalc_path()):
+                self.acoustid_id, musicbrainz_id = get_recording_id_from_acoustid(self.file_path)
+            else:
+                self.acoustid_id, musicbrainz_id = None, None
 
             if self.acoustid_id and musicbrainz_id:
                 self.music_metadata, self.artist_metadata, self.album_metadata, self.lyrics_metadata = get_music_metadata(musicbrainz_id=musicbrainz_id)

@@ -13,6 +13,7 @@ import logging, datetime, json, sys, arcade
 arcade.ArcadeContext.atlas_size = (16384, 16384)
 
 from utils.utils import get_closest_resolution, print_debug_info, on_exception
+from utils.acoustid_metadata import get_fpcalc_path
 from utils.constants import log_dir, menu_background_color
 from menus.main import Main
 from arcade.experimental.controller_window import ControllerWindow
@@ -95,11 +96,16 @@ arcade.set_background_color(menu_background_color)
 
 print_debug_info()
 
-if pyglet.media.codecs.have_ffmpeg():
-    menu = Main()
-else:
+if not pyglet.media.codecs.have_ffmpeg():
     from menus.ffmpeg_missing import FFmpegMissing
     menu = FFmpegMissing()
+    
+elif not os.path.exists(get_fpcalc_path()):
+    from menus.fpcalc_missing import FpcalcMissing
+    menu = FpcalcMissing()
+
+else:
+    menu = Main()
 
 window.show_view(menu)
 
