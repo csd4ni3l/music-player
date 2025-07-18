@@ -335,7 +335,7 @@ class Main(arcade.gui.UIView):
                 content_to_show = [match[0] for match in matches]
             else:
                 self.highest_score_file = ""
-                self.content_to_show = []
+                content_to_show = []
 
         else:
             self.highest_score_file = ""
