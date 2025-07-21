@@ -13,8 +13,8 @@ class FFmpegMissing(arcade.gui.UIView):
             arcade.gui.UIMessageBox(
                 width=self.window.width / 2,
                 height=self.window.height / 2,
-                title="FFmpeg Missing",
-                message_text="FFmpeg has not been found but is required for this application.",
+                title="Third-party FFmpeg Missing",
+                message_text="FFmpeg is a third party software that is required for this application to work. It needs to be downloaded with libavcodec (and) shared libraries included. We provide a basic install script for Windows that might or might not work. For other operating systems, install from the package manager to make sure it is in PATH.",
                 buttons=("Exit", "Install")
             )
         )
@@ -28,7 +28,7 @@ class FFmpegMissing(arcade.gui.UIView):
         system = platform.system()
 
         if system == "Linux" or system == "Darwin":
-            msgbox = self.add_widget(arcade.gui.UIMessageBox(message_text="You are on a Linux or Darwin based OS. You need to install FFmpeg, and libavcodec shared libraries from your package manager so it is in PATH.", width=self.window.width / 2, height=self.window.height / 2))
+            msgbox = self.add_widget(arcade.gui.UIMessageBox(message_text="You are on a Linux or Darwin based OS. You need to install FFmpeg and libavcodec shared libraries from your package manager to make sure it is in PATH.", width=self.window.width / 2, height=self.window.height / 2))
             msgbox.on_action = lambda: sys.exit()
             return
 
@@ -46,4 +46,4 @@ class FFmpegMissing(arcade.gui.UIView):
                 logging.debug("Failed to install FFmpeg via winget:", e)
 
         else:
-            self.add_widget(arcade.gui.UIMessageBox(message_text="Your OS is unsupported by this script. You are probably on some kind of BSD system. Please install FFmpeg and libavcodec shared libraries from your package manager so it is in PATH.", width=self.window.width / 2, height=self.window.height / 2))
+            self.add_widget(arcade.gui.UIMessageBox(message_text="Your OS is unsupported by this script. You are probably on some kind of BSD system. Please install FFmpeg and libavcodec shared libraries from your package manager to make sure it is in PATH.", width=self.window.width / 2, height=self.window.height / 2))

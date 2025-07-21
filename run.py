@@ -7,13 +7,10 @@ os.environ['SSL_CERT_FILE'] = certifi.where() # Fix SSL not working and download
 import pyglet
 
 pyglet.options.debug_gl = False
+max_texture_size = pyglet.image.get_max_texture_size()
 
 import logging, datetime, json, sys, arcade
-window = pyglet.window.Window(visible=False, width=1, height=1)
-max_tex_size = pyglet.gl.GLint()
-pyglet.gl.glGetIntegerv(pyglet.gl.GL_MAX_TEXTURE_SIZE, max_tex_size)
-arcade.ArcadeContext.atlas_size = (max_tex_size.value, max_tex_size.value)
-window.close()
+arcade.ArcadeContext.atlas_size = (max_texture_size, max_texture_size)
 
 from utils.utils import get_closest_resolution, print_debug_info, on_exception
 from utils.acoustid_metadata import get_fpcalc_path
