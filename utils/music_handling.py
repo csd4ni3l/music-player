@@ -185,7 +185,10 @@ def add_metadata_to_file(file_path, musicbrainz_artist_ids, artist, title, synch
     if acoustid_id:
         easyid3["acoustid_id"] = acoustid_id
 
-    easyid3.save()
+    try:
+        easyid3.save()
+    except:
+        pass
 
     id3 = ID3(file_path)
     id3.delall("SYLT")
@@ -196,4 +199,7 @@ def add_metadata_to_file(file_path, musicbrainz_artist_ids, artist, title, synch
 
         id3.add(SYLT(encoding=3, lang="eng", format=2, type=1, desc="From lrclib", text=synchronized_lyrics_tuples))
     
-    id3.save()
+    try:
+        id3.save()
+    except:
+        pass
