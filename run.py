@@ -97,10 +97,12 @@ arcade.set_background_color(menu_background_color)
 print_debug_info()
 
 if not pyglet.media.codecs.have_ffmpeg():
+    logging.debug("FFmpeg is missing, opening FFmpeg popup...")
     from menus.ffmpeg_missing import FFmpegMissing
     menu = FFmpegMissing()
     
 elif not os.path.exists(get_fpcalc_path()):
+    logging.debug("fpcalc is missing, opening fpcalc popup...")
     from menus.fpcalc_missing import FpcalcMissing
     menu = FpcalcMissing()
 

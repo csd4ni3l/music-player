@@ -39,8 +39,7 @@ class FFmpegMissing(arcade.gui.UIView):
                     "--accept-source-agreements", "--accept-package-agreements"
                 ], check=True)
                 logging.debug("FFmpeg installed via winget.")
-                msgbox = self.add_widget(arcade.gui.UIMessageBox(message_text="You are on a Linux or Darwin based OS. You need to install FFmpeg, and libavcodec shared libraries from your package manager so it is in PATH.", width=self.window.width / 2, height=self.window.height / 2))
-                msgbox.on_action = lambda: sys.exit()
+                sys.exit()
                 return
 
             except subprocess.CalledProcessError as e:

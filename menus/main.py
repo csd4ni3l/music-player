@@ -464,6 +464,7 @@ class Main(arcade.gui.UIView):
                 self.next_lyrics_label.text = '\n'.join([self.parsed_lyrics[next_lyrics_time] for next_lyrics_time in next_lyrics_times])
             else:
                 self.next_lyrics_label.text = '\n'.join(list(self.parsed_lyrics.values())[0:10])
+            self.next_lyrics_label.fit_content()
 
         if self.should_reload:
             self.should_reload = False
