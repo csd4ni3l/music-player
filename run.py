@@ -9,8 +9,11 @@ import pyglet
 pyglet.options.debug_gl = False
 
 import logging, datetime, json, sys, arcade
-
-arcade.ArcadeContext.atlas_size = (16384, 16384)
+window = pyglet.window.Window(visible=False, width=1, height=1)
+max_tex_size = pyglet.gl.GLint()
+pyglet.gl.glGetIntegerv(pyglet.gl.GL_MAX_TEXTURE_SIZE, max_tex_size)
+arcade.ArcadeContext.atlas_size = (max_tex_size.value, max_tex_size.value)
+window.close()
 
 from utils.utils import get_closest_resolution, print_debug_info, on_exception
 from utils.acoustid_metadata import get_fpcalc_path
