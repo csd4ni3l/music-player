@@ -621,7 +621,7 @@ class Main(arcade.gui.UIView):
             else:
                 state = "Paused"
         else:
-            details = ""
+            details = "No songs playing"
             state = "No songs playing"
 
         self.pypresence_client.update(state=state, details=details, start=self.pypresence_client.start_time)

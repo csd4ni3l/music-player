@@ -55,13 +55,13 @@ def extract_metadata_and_thumbnail(file_path: str, thumb_resolution: tuple):
                     last_played = float(frame.text[0])
                 elif desc == "play_count":
                     play_count = int(frame.text[0])
+        
+            if hasattr(easyid3, "info"):
+                sound_length = round(easyid3.info.length, 2)
+                bitrate = int((easyid3.info.bitrate or 0) / 1000)
+                sample_rate = int(easyid3.info.sample_rate / 1000)
         except ID3NoHeaderError:
             pass
-
-        if hasattr(easyid3, "info"):
-            sound_length = round(easyid3.info.length, 2)
-            bitrate = int((easyid3.info.bitrate or 0) / 1000)
-            sample_rate = int(easyid3.info.sample_rate / 1000)
 
         apic = id3.getall("APIC")
         thumb_image_data = apic[0].data if apic else None
