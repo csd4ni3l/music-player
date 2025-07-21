@@ -60,16 +60,17 @@ def extract_metadata_and_thumbnail(file_path: str, thumb_resolution: tuple):
                 sound_length = round(easyid3.info.length, 2)
                 bitrate = int((easyid3.info.bitrate or 0) / 1000)
                 sample_rate = int(easyid3.info.sample_rate / 1000)
+
+            apic = id3.getall("APIC")
+            thumb_image_data = apic[0].data if apic else None
+
+            if thumb_image_data:
+                pil_image = Image.open(io.BytesIO(thumb_image_data)).convert("RGBA")
+                pil_image = pil_image.resize(thumb_resolution)
+                thumb_texture = arcade.Texture(pil_image)
+
         except ID3NoHeaderError:
             pass
-
-        apic = id3.getall("APIC")
-        thumb_image_data = apic[0].data if apic else None
-
-        if thumb_image_data:
-            pil_image = Image.open(io.BytesIO(thumb_image_data)).convert("RGBA")
-            pil_image = pil_image.resize(thumb_resolution)
-            thumb_texture = arcade.Texture(pil_image)
 
     except Exception as e:
         logging.debug(f"[Metadata/Thumbnail Error] {file_path}: {e}")
@@ -103,7 +104,6 @@ def extract_metadata_and_thumbnail(file_path: str, thumb_resolution: tuple):
         "title": title,
         "thumbnail": thumb_texture,
     }
-
 
 def adjust_volume(input_path, volume):
     audio = AudioSegment.from_file(input_path)
