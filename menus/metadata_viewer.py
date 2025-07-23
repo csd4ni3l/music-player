@@ -157,8 +157,8 @@ Artist Comment: {artist_dict['comment']}
                 for url_name, url_target in artist_dict["urls"].items():
                     metadata_text += f"\n{url_name.capitalize()} Links: {', '.join(url_target)}"
 
-                metadata_box = self.box.add(arcade.gui.UIBoxLayout(space_between=10, align='center'))
-                self.metadata_labels.append(metadata_box.add(arcade.gui.UILabel(text=name, font_size=20, font_name="Roboto", multiline=True)))
+                metadata_box = self.box.add(arcade.gui.UIBoxLayout(space_between=10, align='left'))
+                self.metadata_labels.append(metadata_box.add(arcade.gui.UILabel(text=name, font_size=20, font_name="Roboto", multiline=True, align="center")))
                 self.metadata_labels.append(metadata_box.add(arcade.gui.UILabel(text=metadata_text, font_size=18, font_name="Roboto", multiline=True)))
 
         elif self.metadata_type == "album":
