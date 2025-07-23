@@ -204,7 +204,7 @@ class Main(arcade.gui.UIView):
         self.settings_button = self.tools_box.add(UIFocusTextureButton(texture=settings_icon, style=button_style), anchor_x="right", anchor_y="bottom", align_x=-15, align_y=15)
         self.settings_button.on_click = lambda event: self.settings()
 
-        self.no_music_label = self.anchor.add(arcade.gui.UILabel(text="No music files were found in this directory or playlist.", font_name="Roboto", font_size=24), anchor_x="center", anchor_y="center")
+        self.no_music_label = self.anchor.add(arcade.gui.UILabel(text="No music files were found in this directory or playlist.", font_name="Roboto", font_size=24), anchor_x="center", anchor_y="center", align_x=-self.window.width * 0.1)
         self.no_music_label.visible = False
 
         if self.current_mode == "files":
