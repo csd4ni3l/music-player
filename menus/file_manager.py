@@ -6,20 +6,19 @@ from utils.preload import button_texture, button_hovered_texture
 from arcade.gui.experimental.scroll_area import UIScrollArea, UIScrollBar
 
 class FileManager(arcade.gui.UIView):
-    def __init__(self, start_directory, allowed_extensions, select_mode="dir", *args):
+    def __init__(self, start_directory, allowed_extensions, select_mode="dir", *args, playlist_selected=None):
         super().__init__()
 
         self.select_mode = select_mode
+        self.playlist_selected = playlist_selected
         self.current_directory = start_directory
         self.allowed_extensions = allowed_extensions        
         self.file_buttons = []
         self.submitted_content = ""
         self.done = False
 
-        if not self.select_mode == "file":
-            self.args = args
-        else:
-            self.playlist_selected, *self.args = args
+        self.args = args
+        self.playlist_selected = playlist_selected
 
         self.anchor = self.ui.add(arcade.gui.UIAnchorLayout(size_hint=(1, 1)))
         self.box = self.anchor.add(arcade.gui.UIBoxLayout(size_hint=(0.7, 0.7)), anchor_x="center", anchor_y="center")
@@ -58,7 +57,7 @@ class FileManager(arcade.gui.UIView):
         
         if self.select_mode == "file":
             from menus.add_music import AddMusic
-            self.window.show_view(AddMusic(*self.args, music_file_selected=self.submitted_content))
+            self.window.show_view(AddMusic(*self.args, music_file_selected=self.submitted_content, playlist_selected=self.playlist_selected))
         elif self.select_mode == "directory":
             from menus.new_tab import NewTab
             self.window.show_view(NewTab(*self.args, directory_selected=self.submitted_content))

@@ -45,7 +45,7 @@ class AddMusic(arcade.gui.UIView):
         self.anchor.detect_focusable_widgets()
 
     def select_file(self):
-        self.window.show_view(FileManager(os.path.expanduser("~"), [f".{extension}" for extension in audio_extensions], "file", self.pypresence_client, self.playlist_selected, *self.args))
+        self.window.show_view(FileManager(os.path.expanduser("~"), [f".{extension}" for extension in audio_extensions], "file", self.pypresence_client, *self.args, playlist_selected=self.playlist_option.value))
 
     def add_music(self):
         music_path = self.music_file_selected
