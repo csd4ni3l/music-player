@@ -488,8 +488,8 @@ class Main(arcade.gui.UIView):
 
                 self.current_music_artist = artist
                 self.current_music_title = title
-                self.current_music_title_label.text = title
-                self.current_music_artist_label.text = artist
+                self.current_music_title_label.text = truncate_end(title, int(self.window.width / 50))
+                self.current_music_artist_label.text = truncate_end(artist, int(self.window.width / 50))
                 self.current_music_path = music_path
                 self.current_music_thumbnail_image.texture = self.file_metadata[music_path]["thumbnail"]
                 self.time_label.text = "00:00"
