@@ -516,7 +516,10 @@ class Main(arcade.gui.UIView):
                     self.skip_sound() # reset properties
 
                 if self.shuffle:
-                    self.queue.append(f"{self.current_tab}/{random.choice(self.tab_content[self.current_tab])}")
+                    if self.current_mode == "files":
+                        self.queue.append(f"{self.current_tab}/{random.choice(self.tab_content[self.current_tab])}")
+                    elif self.current_mode == "playlist":
+                        self.queue.append(random.choice(self.playlist_content[self.current_tab]))
 
         if not self.current_music_player is None:
             if self.time_to_seek is not None:

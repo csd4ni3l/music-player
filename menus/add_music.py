@@ -6,16 +6,17 @@ from menus.file_manager import FileManager
 from arcade.gui.experimental.focus import UIFocusGroup
 
 class AddMusic(arcade.gui.UIView):
-    def __init__(self, pypresence_client, *args, music_file_selected=None):
+    def __init__(self, pypresence_client, *args, playlist_selected=None, music_file_selected=None):
         super().__init__()
 
         self.args = args
-        self.music_file_selected = music_file_selected
-
+        
         with open("settings.json", "r", encoding="utf-8") as file:
             self.settings_dict = json.load(file)
 
         self.playlists = self.settings_dict.get("playlists", {})
+        self.music_file_selected = music_file_selected
+        self.playlist_selected = playlist_selected or list(self.playlists.keys())[0]
 
         self.pypresence_client = pypresence_client
         self.pypresence_client.update(state="Adding music to playlist", start=self.pypresence_client.start_time)
@@ -28,7 +29,7 @@ class AddMusic(arcade.gui.UIView):
 
         self.playlist_label = self.box.add(arcade.gui.UILabel(text="Playlist", font_name="Roboto", font_size=32))
         
-        self.playlist_option = self.box.add(arcade.gui.UIDropdown(default=list(self.playlists.keys())[0], options=list(self.playlists.keys()), width=self.window.width / 2, height=self.window.height / 15, primary_style=button_style, dropdown_style=button_style, active_style=button_style))
+        self.playlist_option = self.box.add(arcade.gui.UIDropdown(default=self.playlist_selected, options=list(self.playlists.keys()), width=self.window.width / 2, height=self.window.height / 15, primary_style=button_style, dropdown_style=button_style, active_style=button_style))
         
         self.music_label = self.box.add(arcade.gui.UILabel(text="Music File Path", font_name="Roboto", font_size=32))
         
@@ -44,7 +45,7 @@ class AddMusic(arcade.gui.UIView):
         self.anchor.detect_focusable_widgets()
 
     def select_file(self):
-        self.window.show_view(FileManager(os.path.expanduser("~"), [f".{extension}" for extension in audio_extensions], "file", self.pypresence_client, *self.args))
+        self.window.show_view(FileManager(os.path.expanduser("~"), [f".{extension}" for extension in audio_extensions], "file", self.pypresence_client, self.playlist_selected, *self.args))
 
     def add_music(self):
         music_path = self.music_file_selected

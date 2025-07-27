@@ -15,7 +15,11 @@ class FileManager(arcade.gui.UIView):
         self.file_buttons = []
         self.submitted_content = ""
         self.done = False
-        self.args = args
+
+        if not self.select_mode == "file":
+            self.args = args
+        else:
+            self.playlist_selected, *self.args = args
 
         self.anchor = self.ui.add(arcade.gui.UIAnchorLayout(size_hint=(1, 1)))
         self.box = self.anchor.add(arcade.gui.UIBoxLayout(size_hint=(0.7, 0.7)), anchor_x="center", anchor_y="center")
@@ -40,7 +44,7 @@ class FileManager(arcade.gui.UIView):
         self.scroll_area.add(self.files_box)
         
         self.back_button = self.anchor.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text='<--', style=button_style, width=100, height=50), anchor_x="left", anchor_y="top", align_x=5, align_y=-5)
-        self.back_button.on_click = lambda event: self.change_directory(os.path.dirname(self.current_directory))
+        self.back_button.on_click = lambda event: self.main_exit()
         
         self.show_directory()
 
@@ -110,6 +114,9 @@ class FileManager(arcade.gui.UIView):
 
         self.current_directory_label.text = self.current_directory
 
+        self.file_buttons.append(self.files_box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text="Back", style=button_style, width=self.window.width / 1.5)))
+        self.file_buttons[-1].on_click = lambda event, directory=os.path.dirname(self.current_directory): self.change_directory(directory)
+
         for file in self.get_content(self.current_directory):
             self.file_buttons.append(self.files_box.add(arcade.gui.UITextureButton(texture=button_texture, texture_hovered=button_hovered_texture, text=file, style=button_style, width=self.window.width / 1.5)))
             
@@ -128,9 +135,8 @@ class FileManager(arcade.gui.UIView):
 
     def on_key_press(self, symbol: int, modifiers: int) -> bool | None:
         if symbol == arcade.key.ESCAPE:
-            from menus.main import Main
-            self.window.show_view(Main(*self.args))
+            self.main_exit()
 
-    def on_mouse_press(self, x, y, button, modifiers):
-       if button == arcade.MOUSE_BUTTON_RIGHT:
-           self.change_directory(os.path.dirname(self.current_directory))
+    def main_exit(self):
+        from menus.main import Main
+        self.window.show_view(Main(*self.args))
