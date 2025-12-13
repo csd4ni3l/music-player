@@ -1,8 +1,5 @@
-import logging, sys, traceback, pyglet, arcade, arcade.gui, textwrap, os, json
-
-from utils.constants import menu_background_color
-
 from arcade.gui.experimental.scroll_area import UIScrollArea
+import logging, arcade, traceback, pyglet.display, arcade.gui, textwrap, os, json
 
 def dump_platform():
     import platform
@@ -11,8 +8,11 @@ def dump_platform():
     logging.debug(f'Machine: {platform.machine()}')
     logging.debug(f'Architecture: {platform.architecture()}')
 
-def dump_gl():
-    from pyglet.gl import gl_info as info
+def dump_gl(context=None):
+    if context is not None:
+        info = context.get_info()
+    else:
+        from pyglet.gl import gl_info as info
     logging.debug(f'gl_info.get_version(): {info.get_version()}')
     logging.debug(f'gl_info.get_vendor(): {info.get_vendor()}')
     logging.debug(f'gl_info.get_renderer(): {info.get_renderer()}')
@@ -35,28 +35,25 @@ def print_debug_info():
     logging.debug('########################## DEBUG INFO ##########################')
     logging.debug('')
 
-class ErrorView(arcade.gui.UIView):
-    def __init__(self, message: str, title: str):
-        super().__init__()
+def on_exception(*exc_info):
+    logging.error(f"Unhandled exception:\n{''.join(traceback.format_exception(exc_info[1], limit=None))}")
 
-        self.message = message
-        self.title = title
+def get_closest_resolution():
+    allowed_resolutions = [(1366, 768), (1440, 900), (1600,900), (1920,1080), (2560,1440), (3840,2160)]
+    screen_width, screen_height = arcade.get_screens()[0].width, arcade.get_screens()[0].height
+    if (screen_width, screen_height) in allowed_resolutions:
+        if not allowed_resolutions.index((screen_width, screen_height)) == 0:
+            closest_resolution = allowed_resolutions[allowed_resolutions.index((screen_width, screen_height))-1]
+        else:
+            closest_resolution = (screen_width, screen_height)
+    else:
+        target_width, target_height = screen_width // 2, screen_height // 2
 
-    def exit(self):
-        logging.fatal('Exited with error code 1.')
-        sys.exit(1)
-
-    def on_show_view(self):
-        super().on_show_view()
-
-        self.window.set_caption('Music Player - Error')
-        self.window.set_mouse_visible(True)
-        self.window.set_exclusive_mouse(False)
-        arcade.set_background_color(menu_background_color)
-
-        msgbox = arcade.gui.UIMessageBox(width=self.window.width / 2, height=self.window.height / 2, message_text=self.message, title=self.title)
-        msgbox.on_action = lambda event: self.exit()
-        self.add_widget(msgbox)
+        closest_resolution = min(
+            allowed_resolutions,
+            key=lambda res: abs(res[0] - target_width) + abs(res[1] - target_height)
+        )
+    return closest_resolution
 
 class FakePyPresence():
     def __init__(self):
