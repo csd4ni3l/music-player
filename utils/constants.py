@@ -11,12 +11,12 @@ view_modes = ["files", "playlist"]
 
 MUSIC_TITLE_WORD_BLACKLIST = ["compilation", "remix", "vs", "cover", "version", "instrumental", "restrung", "interlude"]
 COVER_CACHE_DIR = "cover_cache"
-ACOUSTID_API_KEY = 'PuUkMEnUXf'
+ACOUSTID_API_KEY = 'ACOUSTID_API_KEY'
 LRCLIB_BASE_URL = "https://lrclib.net/api/search"
 
 MUSICBRAINZ_PROJECT_NAME = "csd4ni3l/music-player"
 MUSCIBRAINZ_VERSION = "git"
-MUSICBRAINZ_CONTACT = "csd4ni3l@proton.me"
+MUSICBRAINZ_CONTACT = "CONTACT_EMAIL"
 
 DARK_GRAY = Color(45, 45, 45)
 GRAY = Color(70, 70, 70)

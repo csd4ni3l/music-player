@@ -1,6 +1,8 @@
 A simple and fast music player in Arcade.
 
-Note: FFmpeg is required due to both yt-dlp and to support most formats
+## Important
+- FFmpeg is required due to both yt-dlp and to support most formats
+- An Acoustid API Key is required, as well as a MusicBrainz Contact Email in the utils/constants.py file
 
 Features:
 - Music downloading with thumbnail and as best format using yt-dlp
