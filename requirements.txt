@@ -6,7 +6,7 @@ attrs==25.3.0
     # via pytiled-parser
 audioread==3.0.1
     # via pyacoustid
-certifi==2025.7.9
+certifi==2026.10.18
     # via
     #   musicplayer (pyproject.toml)
     #   requests
